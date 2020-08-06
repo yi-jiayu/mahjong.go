@@ -231,20 +231,12 @@ func (r *Round) Discard(seat int, tile string) error {
 	if r.CurrentAction != ActionDiscard {
 		return errors.New("not time to discard")
 	}
-	if !contains(r.Hands[seat].Concealed, tile) {
+	remaining, ok := removeTile(r.Hands[seat].Concealed, tile)
+	if !ok {
 		return errors.New("no such tile")
 	}
-	i := 0
-	for _, t := range r.Hands[seat].Concealed {
-		if t == tile {
-			r.Discards = append(r.Discards, t)
-			tile = ""
-		} else {
-			r.Hands[seat].Concealed[i] = t
-			i++
-		}
-	}
-	r.Hands[seat].Concealed = r.Hands[seat].Concealed[:i]
+	r.Hands[seat].Concealed = remaining
+	r.Discards = append(r.Discards, tile)
 	r.CurrentTurn = (seat + 1) % 4
 	r.CurrentAction = ActionDiscard
 	return nil
