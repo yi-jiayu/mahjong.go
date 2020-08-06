@@ -218,6 +218,7 @@ func TestRound_Discard(t *testing.T) {
 		assert.Equal(t, []string{TileWindsEast, TileWindsEast}, round.Hands[DirectionEast].Concealed)
 		assert.Equal(t, DirectionSouth, round.CurrentTurn)
 		assert.Equal(t, ActionDraw, round.CurrentAction)
+		assert.Equal(t, 1, round.SequenceNumber)
 	})
 }
 
@@ -265,6 +266,7 @@ func TestRound_Chow(t *testing.T) {
 		assert.Equal(t, []string{TileBamboo1, TileBamboo2, TileBamboo3}, round.Hands[DirectionEast].Revealed)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, 1, round.SequenceNumber)
 	})
 }
 
@@ -341,6 +343,7 @@ func TestRound_Peng(t *testing.T) {
 		assert.Equal(t, []string{TileBamboo4, TileBamboo4, TileBamboo4}, round.Hands[DirectionEast].Revealed)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, 1, round.SequenceNumber)
 	})
 }
 
@@ -383,6 +386,7 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, []string{TileGentlemen1}, round.Hands[DirectionEast].Flowers)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, 1, round.SequenceNumber)
 	})
 	t.Run("drawing flower again", func(t *testing.T) {
 		round := &Round{
@@ -398,5 +402,6 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, []string{TileGentlemen1, TileGentlemen2}, round.Hands[DirectionEast].Flowers)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, 1, round.SequenceNumber)
 	})
 }

@@ -108,6 +108,7 @@ type Round struct {
 	Discards       []string
 	Hands          []Hand
 	PrevailingWind int
+	SequenceNumber int
 	CurrentTurn    int
 	CurrentAction  string
 }
@@ -238,6 +239,7 @@ func (r *Round) Discard(seat int, tile string) error {
 	r.Discards = append(r.Discards, tile)
 	r.CurrentTurn = (seat + 1) % 4
 	r.CurrentAction = ActionDraw
+	r.SequenceNumber++
 	return nil
 }
 
@@ -270,6 +272,7 @@ func (r *Round) Chow(seat int, tile1, tile2 string) error {
 	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, seq[:]...)
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
+	r.SequenceNumber++
 	return nil
 }
 
@@ -301,6 +304,7 @@ func (r *Round) Peng(seat int, tile string) error {
 	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, tile, tile, tile)
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
+	r.SequenceNumber++
 	return nil
 }
 
@@ -319,6 +323,7 @@ func (r *Round) Draw(seat int) error {
 	}
 	r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
 	r.CurrentAction = ActionDiscard
+	r.SequenceNumber++
 	return nil
 }
 
