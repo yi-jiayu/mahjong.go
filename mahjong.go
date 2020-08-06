@@ -118,13 +118,33 @@ func (h Hand) MarshalJSON() ([]byte, error) {
 }
 
 type Round struct {
-	Wall           []string `json:"-"`
-	Discards       []string `json:"discards"`
-	Hands          []Hand   `json:"hands"`
-	PrevailingWind int      `json:"prevailing_wind"`
-	SequenceNumber int      `json:"sequence_number"`
-	CurrentTurn    int      `json:"current_turn"`
-	CurrentAction  string   `json:"current_action"`
+	Wall           []string
+	Discards       []string
+	Hands          []Hand
+	PrevailingWind int
+	SequenceNumber int
+	CurrentTurn    int
+	CurrentAction  string
+}
+
+func (r *Round) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		DrawsLeft      int      `json:"draws_left"`
+		Discards       []string `json:"discards"`
+		Hands          []Hand   `json:"hands"`
+		PrevailingWind int      `json:"prevailing_wind"`
+		SequenceNumber int      `json:"sequence_number"`
+		CurrentTurn    int      `json:"current_turn"`
+		CurrentAction  string   `json:"current_action"`
+	}{
+		DrawsLeft:      len(r.Wall),
+		Discards:       r.Discards,
+		Hands:          r.Hands,
+		PrevailingWind: r.PrevailingWind,
+		SequenceNumber: r.SequenceNumber,
+		CurrentTurn:    r.CurrentTurn,
+		CurrentAction:  r.CurrentAction,
+	})
 }
 
 func newWall(r *rand.Rand) []string {
