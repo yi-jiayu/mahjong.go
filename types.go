@@ -3,6 +3,7 @@ package mahjong
 import (
 	"errors"
 	"math/rand"
+	"sort"
 )
 
 const (
@@ -71,6 +72,30 @@ var (
 	FlowerTiles = []string{"01猫", "02老鼠", "03公鸡", "04蜈蚣", "05梅", "06兰", "07菊", "08竹", "09春", "10夏", "11秋", "12冬"}
 	NormalTiles = []string{"13一筒", "14二筒", "15三筒", "16四筒", "17五筒", "18六筒", "19七筒", "20八筒", "21九筒", "22一索", "23二索", "24三索", "25四索", "26五索", "27六索", "28七索", "29八索", "30九索", "31一万", "32二万", "33三万", "34四万", "35五万", "36六万", "37七万", "38八万", "39九万", "40东风", "41南风", "42西风", "43北风", "44红中", "45青发", "46白板"}
 )
+
+var validSequences = [][3]string{
+	{TileBamboo1, TileBamboo2, TileBamboo3},
+	{TileBamboo2, TileBamboo3, TileBamboo4},
+	{TileBamboo3, TileBamboo4, TileBamboo5},
+	{TileBamboo4, TileBamboo5, TileBamboo6},
+	{TileBamboo5, TileBamboo6, TileBamboo7},
+	{TileBamboo6, TileBamboo7, TileBamboo8},
+	{TileBamboo7, TileBamboo8, TileBamboo9},
+	{TileDots1, TileDots2, TileDots3},
+	{TileDots2, TileDots3, TileDots4},
+	{TileDots3, TileDots4, TileDots5},
+	{TileDots4, TileDots5, TileDots6},
+	{TileDots5, TileDots6, TileDots7},
+	{TileDots6, TileDots7, TileDots8},
+	{TileDots7, TileDots8, TileDots9},
+	{TileCharacters1, TileCharacters2, TileCharacters3},
+	{TileCharacters2, TileCharacters3, TileCharacters4},
+	{TileCharacters3, TileCharacters4, TileCharacters5},
+	{TileCharacters4, TileCharacters5, TileCharacters6},
+	{TileCharacters5, TileCharacters6, TileCharacters7},
+	{TileCharacters6, TileCharacters7, TileCharacters8},
+	{TileCharacters7, TileCharacters8, TileCharacters9},
+}
 
 type Hand struct {
 	Flowers   []string
@@ -183,6 +208,22 @@ func distributeTiles(wall []string, dealer int) ([]Hand, []string) {
 	return hands, wall
 }
 
+func removeTile(tiles []string, tile string) ([]string, bool) {
+	i := 0
+	removed := false
+	for _, t := range tiles {
+		if t == tile {
+			tile = ""
+			removed = true
+		} else {
+			tiles[i] = t
+			i++
+		}
+	}
+	tiles = tiles[:i]
+	return tiles, removed
+}
+
 func (r *Round) Discard(seat int, tile string) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
@@ -203,8 +244,40 @@ func (r *Round) Discard(seat int, tile string) error {
 			i++
 		}
 	}
-	r.Hands[seat].Concealed = r.Hands[seat].Concealed[i:]
+	r.Hands[seat].Concealed = r.Hands[seat].Concealed[:i]
 	r.CurrentTurn = (seat + 1) % 4
+	r.CurrentAction = ActionDiscard
+	return nil
+}
+
+func validSequence(seq [3]string) bool {
+	sort.Strings(seq[:])
+	for _, valid := range validSequences {
+		if seq == valid {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Round) 吃(seat int, tile1, tile2 string) error {
+	if r.CurrentTurn != seat {
+		return errors.New("not your turn")
+	}
+	if r.CurrentAction != ActionDraw {
+		return errors.New("not time to chow")
+	}
+	if !contains(r.Hands[seat].Concealed, tile1) || !contains(r.Hands[seat].Concealed, tile2) {
+		return errors.New("no such tile")
+	}
+	seq := [3]string{tile1, tile2, r.Discards[len(r.Discards)-1]}
+	if !validSequence(seq) {
+		return errors.New("invalid sequence")
+	}
+	r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile1)
+	r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile2)
+	r.Discards = r.Discards[:len(r.Discards)-1]
+	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, seq[:]...)
 	r.CurrentAction = ActionDiscard
 	return nil
 }
