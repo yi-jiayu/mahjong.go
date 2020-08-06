@@ -1,6 +1,7 @@
 package mahjong
 
 import (
+	"encoding/json"
 	"errors"
 	"math/rand"
 	"sort"
@@ -103,14 +104,27 @@ type Hand struct {
 	Concealed []string
 }
 
+func (h Hand) MarshalJSON() ([]byte, error) {
+	masked := make([]string, len(h.Concealed))
+	return json.Marshal(struct {
+		Flowers   []string `json:"flowers"`
+		Revealed  []string `json:"revealed"`
+		Concealed []string `json:"concealed"`
+	}{
+		Flowers:   h.Flowers,
+		Revealed:  h.Revealed,
+		Concealed: masked,
+	})
+}
+
 type Round struct {
-	Wall           []string
-	Discards       []string
-	Hands          []Hand
-	PrevailingWind int
-	SequenceNumber int
-	CurrentTurn    int
-	CurrentAction  string
+	Wall           []string `json:"-"`
+	Discards       []string `json:"discards"`
+	Hands          []Hand   `json:"hands"`
+	PrevailingWind int      `json:"prevailing_wind"`
+	SequenceNumber int      `json:"sequence_number"`
+	CurrentTurn    int      `json:"current_turn"`
+	CurrentAction  string   `json:"current_action"`
 }
 
 func newWall(r *rand.Rand) []string {
@@ -157,7 +171,28 @@ func isFlower(tile string) bool {
 }
 
 func distributeTiles(wall []string, dealer int) ([]Hand, []string) {
-	hands := make([]Hand, 4)
+	hands := []Hand{
+		{
+			Flowers:   []string{},
+			Revealed:  []string{},
+			Concealed: []string{},
+		},
+		{
+			Flowers:   []string{},
+			Revealed:  []string{},
+			Concealed: []string{},
+		},
+		{
+			Flowers:   []string{},
+			Revealed:  []string{},
+			Concealed: []string{},
+		},
+		{
+			Flowers:   []string{},
+			Revealed:  []string{},
+			Concealed: []string{},
+		},
+	}
 	order := []int{dealer, (dealer + 1) % 4, (dealer + 2) % 4, (dealer + 3) % 4}
 	// draw 4 tiles 3 times
 	for i := 0; i < 3; i++ {
@@ -333,6 +368,7 @@ func NewRound(seed int64, wind int, dealer int) *Round {
 	wall := newWall(r)
 	hands, wall := distributeTiles(wall, dealer)
 	return &Round{
+		Discards:       []string{},
 		Wall:           wall,
 		Hands:          hands,
 		PrevailingWind: wind,
