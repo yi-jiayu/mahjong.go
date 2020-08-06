@@ -237,7 +237,7 @@ func (r *Round) Discard(seat int, tile string) error {
 	r.Hands[seat].Concealed = remaining
 	r.Discards = append(r.Discards, tile)
 	r.CurrentTurn = (seat + 1) % 4
-	r.CurrentAction = ActionDiscard
+	r.CurrentAction = ActionDraw
 	return nil
 }
 
@@ -251,7 +251,7 @@ func validSequence(seq [3]string) bool {
 	return false
 }
 
-func (r *Round) 吃(seat int, tile1, tile2 string) error {
+func (r *Round) Chow(seat int, tile1, tile2 string) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
 	}
@@ -287,7 +287,7 @@ func countTiles(tiles []string, tile string) int {
 	return count
 }
 
-func (r *Round) 碰(seat int, tile string) error {
+func (r *Round) Peng(seat int, tile string) error {
 	if seat == r.PreviousTurn() {
 		return errors.New("wrong turn")
 	}
