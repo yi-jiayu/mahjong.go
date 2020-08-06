@@ -201,7 +201,7 @@ func TestRound_Discard(t *testing.T) {
 		round := &Round{
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDiscard,
-			Hands:         []Hand{{}},
+			Hands:         [4]Hand{{}},
 		}
 		err := round.Discard(DirectionEast, "")
 		assert.Error(t, err)
@@ -210,7 +210,7 @@ func TestRound_Discard(t *testing.T) {
 		round := &Round{
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDiscard,
-			Hands:         []Hand{{Concealed: []string{TileWindsEast, TileWindsEast, TileWindsEast}}},
+			Hands:         [4]Hand{{Concealed: []string{TileWindsEast, TileWindsEast, TileWindsEast}}},
 		}
 		err := round.Discard(DirectionEast, TileWindsEast)
 		assert.NoError(t, err)
@@ -237,7 +237,7 @@ func TestRound_Chow(t *testing.T) {
 		round := &Round{
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
-			Hands:         []Hand{{}},
+			Hands:         [4]Hand{{}},
 		}
 		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2)
 		assert.Error(t, err)
@@ -247,7 +247,7 @@ func TestRound_Chow(t *testing.T) {
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
 			Discards:      []string{TileBamboo4},
-			Hands:         []Hand{{Concealed: []string{TileBamboo1, TileBamboo2}}},
+			Hands:         [4]Hand{{Concealed: []string{TileBamboo1, TileBamboo2}}},
 		}
 		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2)
 		assert.Error(t, err)
@@ -257,7 +257,7 @@ func TestRound_Chow(t *testing.T) {
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
 			Discards:      []string{TileBamboo4, TileBamboo3},
-			Hands:         []Hand{{Concealed: []string{TileWindsWest, TileBamboo1, TileBamboo2}}},
+			Hands:         [4]Hand{{Concealed: []string{TileWindsWest, TileBamboo1, TileBamboo2}}},
 		}
 		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2)
 		assert.NoError(t, err)
@@ -315,7 +315,7 @@ func TestRound_Peng(t *testing.T) {
 		round := &Round{
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
-			Hands:         []Hand{{}},
+			Hands:         [4]Hand{{}},
 		}
 		err := round.Peng(DirectionEast, TileBamboo1)
 		assert.EqualError(t, err, "not enough tiles")
@@ -324,7 +324,7 @@ func TestRound_Peng(t *testing.T) {
 		round := &Round{
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
-			Hands:         []Hand{{Concealed: []string{TileBamboo1}}},
+			Hands:         [4]Hand{{Concealed: []string{TileBamboo1}}},
 		}
 		err := round.Peng(DirectionEast, TileBamboo1)
 		assert.EqualError(t, err, "not enough tiles")
@@ -334,7 +334,7 @@ func TestRound_Peng(t *testing.T) {
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
 			Discards:      []string{TileBamboo4, TileBamboo4},
-			Hands:         []Hand{{}, {Concealed: []string{TileWindsWest, TileBamboo4, TileBamboo4}}},
+			Hands:         [4]Hand{{}, {Concealed: []string{TileWindsWest, TileBamboo4, TileBamboo4}}},
 		}
 		err := round.Peng(DirectionSouth, TileBamboo4)
 		assert.NoError(t, err)
@@ -363,7 +363,7 @@ func TestRound_Draw(t *testing.T) {
 			Wall:          []string{TileBamboo1, TileBamboo2},
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
-			Hands:         []Hand{{Concealed: []string{TileWindsWest}}},
+			Hands:         [4]Hand{{Concealed: []string{TileWindsWest}}},
 		}
 		err := round.Draw(DirectionEast)
 		assert.NoError(t, err)
@@ -377,7 +377,7 @@ func TestRound_Draw(t *testing.T) {
 			Wall:          []string{TileGentlemen1, TileBamboo1, TileBamboo2},
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
-			Hands:         []Hand{{Concealed: []string{TileWindsWest}}},
+			Hands:         [4]Hand{{Concealed: []string{TileWindsWest}}},
 		}
 		err := round.Draw(DirectionEast)
 		assert.NoError(t, err)
@@ -393,7 +393,7 @@ func TestRound_Draw(t *testing.T) {
 			Wall:          []string{TileGentlemen1, TileBamboo1, TileBamboo2, TileGentlemen2},
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
-			Hands:         []Hand{{Concealed: []string{TileWindsWest}}},
+			Hands:         [4]Hand{{Concealed: []string{TileWindsWest}}},
 		}
 		err := round.Draw(DirectionEast)
 		assert.NoError(t, err)

@@ -120,7 +120,7 @@ func (h Hand) MarshalJSON() ([]byte, error) {
 type Round struct {
 	Wall           []string
 	Discards       []string
-	Hands          []Hand
+	Hands          [4]Hand
 	SequenceNumber int
 	CurrentTurn    int
 	CurrentAction  string
@@ -130,7 +130,7 @@ func (r *Round) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		DrawsLeft      int      `json:"draws_left"`
 		Discards       []string `json:"discards"`
-		Hands          []Hand   `json:"hands"`
+		Hands          [4]Hand  `json:"hands"`
 		SequenceNumber int      `json:"sequence_number"`
 		CurrentTurn    int      `json:"current_turn"`
 		CurrentAction  string   `json:"current_action"`
@@ -187,8 +187,8 @@ func isFlower(tile string) bool {
 	return contains(FlowerTiles, tile)
 }
 
-func distributeTiles(wall []string, dealer int) ([]Hand, []string) {
-	hands := []Hand{
+func distributeTiles(wall []string, dealer int) ([4]Hand, []string) {
+	hands := [4]Hand{
 		{
 			Flowers:   []string{},
 			Revealed:  []string{},
