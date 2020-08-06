@@ -116,81 +116,83 @@ func (g *Game) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func sendMockEvents(game *Game) {
+	events := []Event{
+		{
+			Seat:   mahjong.DirectionEast,
+			Action: "discard",
+			Tiles:  []string{mahjong.TileBamboo1},
+		},
+		{
+			Seat:   mahjong.DirectionSouth,
+			Action: "peng",
+			Tiles:  []string{mahjong.TileBamboo1},
+		},
+		{
+			Seat:   mahjong.DirectionSouth,
+			Action: "discard",
+			Tiles:  []string{mahjong.TileCharacters2},
+		},
+		{
+			Seat:   mahjong.DirectionWest,
+			Action: "draw",
+		},
+		{
+			Seat:   mahjong.DirectionWest,
+			Action: "discard",
+			Tiles:  []string{mahjong.TileCharacters7},
+		},
+		{
+			Seat:   mahjong.DirectionSouth,
+			Action: "peng",
+			Tiles:  []string{mahjong.TileCharacters7},
+		},
+		{
+			Seat:   mahjong.DirectionSouth,
+			Action: "discard",
+			Tiles:  []string{mahjong.TileBamboo4},
+		},
+		{
+			Seat:   mahjong.DirectionWest,
+			Action: "draw",
+		},
+		{
+			Seat:   mahjong.DirectionWest,
+			Action: "discard",
+			Tiles:  []string{mahjong.TileBamboo9},
+		},
+		{
+			Seat:   mahjong.DirectionNorth,
+			Action: "draw",
+		},
+		{
+			Seat:   mahjong.DirectionNorth,
+			Action: "discard",
+			Tiles:  []string{mahjong.TileDots9},
+		},
+		{
+			Action: "reset",
+		},
+	}
+
+	for {
+		i := 0
+		for _, e := range events {
+			time.Sleep(time.Second * 2)
+			e.SequenceNumber = i
+			game.handleEvent(e)
+			i++
+		}
+	}
+}
+
 func main() {
 	game := &Game{
 		Round:   mahjong.NewRound(0, mahjong.DirectionEast, mahjong.DirectionEast),
 		clients: make(map[chan string]struct{}),
 	}
 
-	go func() {
-		events := []Event{
-			{
-				Seat:   mahjong.DirectionEast,
-				Action: "discard",
-				Tiles:  []string{mahjong.TileBamboo1},
-			},
-			{
-				Seat:   mahjong.DirectionSouth,
-				Action: "peng",
-				Tiles:  []string{mahjong.TileBamboo1},
-			},
-			{
-				Seat:   mahjong.DirectionSouth,
-				Action: "discard",
-				Tiles:  []string{mahjong.TileCharacters2},
-			},
-			{
-				Seat:   mahjong.DirectionWest,
-				Action: "draw",
-			},
-			{
-				Seat:   mahjong.DirectionWest,
-				Action: "discard",
-				Tiles:  []string{mahjong.TileCharacters7},
-			},
-			{
-				Seat:   mahjong.DirectionSouth,
-				Action: "peng",
-				Tiles:  []string{mahjong.TileCharacters7},
-			},
-			{
-				Seat:   mahjong.DirectionSouth,
-				Action: "discard",
-				Tiles:  []string{mahjong.TileBamboo4},
-			},
-			{
-				Seat:   mahjong.DirectionWest,
-				Action: "draw",
-			},
-			{
-				Seat:   mahjong.DirectionWest,
-				Action: "discard",
-				Tiles:  []string{mahjong.TileBamboo9},
-			},
-			{
-				Seat:   mahjong.DirectionNorth,
-				Action: "draw",
-			},
-			{
-				Seat:   mahjong.DirectionNorth,
-				Action: "discard",
-				Tiles:  []string{mahjong.TileDots9},
-			},
-			{
-				Action: "reset",
-			},
-		}
-
-		for {
-			i := 0
-			for _, e := range events {
-				time.Sleep(time.Second * 2)
-				e.SequenceNumber = i
-				game.handleEvent(e)
-				i++
-			}
-		}
-	}()
+	go sendMockEvents(game)
 
 	log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:3000", game))
 }
