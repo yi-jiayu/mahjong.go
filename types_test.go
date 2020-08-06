@@ -185,3 +185,38 @@ func Test_distributeTiles(t *testing.T) {
 			wall)
 	})
 }
+
+func TestRound_Discard(t *testing.T) {
+	t.Run("wrong turn", func(t *testing.T) {
+		round := &Round{CurrentTurn: DirectionEast}
+		err := round.Discard(DirectionSouth, "")
+		assert.Error(t, err)
+	})
+	t.Run("wrong action", func(t *testing.T) {
+		round := &Round{CurrentAction: ActionDraw}
+		err := round.Discard(DirectionEast, "")
+		assert.Error(t, err)
+	})
+	t.Run("no such tile", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDiscard,
+			Hands:         []Hand{{}},
+		}
+		err := round.Discard(DirectionEast, "")
+		assert.Error(t, err)
+	})
+	t.Run("success", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDiscard,
+			Hands:         []Hand{{Concealed: []string{"40东风", "40东风"}}},
+		}
+		err := round.Discard(DirectionEast, "40东风")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"40东风"}, round.Discards)
+		assert.Equal(t, []string{"40东风"}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, DirectionSouth, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+}

@@ -1,6 +1,7 @@
 package mahjong
 
 import (
+	"errors"
 	"math/rand"
 )
 
@@ -60,6 +61,12 @@ const (
 	DirectionNorth
 )
 
+const (
+	ActionDraw     = "draw"
+	ActionDiscard  = "discard"
+	ActionGameOver = "game over"
+)
+
 var (
 	FlowerTiles = []string{"01猫", "02老鼠", "03公鸡", "04蜈蚣", "05梅", "06兰", "07菊", "08竹", "09春", "10夏", "11秋", "12冬"}
 	NormalTiles = []string{"13一筒", "14二筒", "15三筒", "16四筒", "17五筒", "18六筒", "19七筒", "20八筒", "21九筒", "22一索", "23二索", "24三索", "25四索", "26五索", "27六索", "28七索", "29八索", "30九索", "31一万", "32二万", "33三万", "34四万", "35五万", "36六万", "37七万", "38八万", "39九万", "40东风", "41南风", "42西风", "43北风", "44红中", "45青发", "46白板"}
@@ -73,9 +80,11 @@ type Hand struct {
 
 type Round struct {
 	Wall           []string
+	Discards       []string
 	Hands          []Hand
-	PrevailingWind string
+	PrevailingWind int
 	CurrentTurn    int
+	CurrentAction  string
 }
 
 func newWall(r *rand.Rand) []string {
@@ -111,6 +120,15 @@ func drawBack(wall []string) (string, []string) {
 func isFlower(tile string) bool {
 	for _, flower := range FlowerTiles {
 		if tile == flower {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(tiles []string, tile string) bool {
+	for _, t := range tiles {
+		if t == tile {
 			return true
 		}
 	}
@@ -165,7 +183,33 @@ func distributeTiles(wall []string, dealer int) ([]Hand, []string) {
 	return hands, wall
 }
 
-func NewRound(seed int64, wind string, dealer int) *Round {
+func (r *Round) Discard(seat int, tile string) error {
+	if r.CurrentTurn != seat {
+		return errors.New("not your turn")
+	}
+	if r.CurrentAction != ActionDiscard {
+		return errors.New("not time to discard")
+	}
+	if !contains(r.Hands[seat].Concealed, tile) {
+		return errors.New("no such tile")
+	}
+	i := 0
+	for _, t := range r.Hands[seat].Concealed {
+		if t == tile {
+			r.Discards = append(r.Discards, t)
+			tile = ""
+		} else {
+			r.Hands[seat].Concealed[i] = t
+			i++
+		}
+	}
+	r.Hands[seat].Concealed = r.Hands[seat].Concealed[i:]
+	r.CurrentTurn = (seat + 1) % 4
+	r.CurrentAction = ActionDiscard
+	return nil
+}
+
+func NewRound(seed int64, wind int, dealer int) *Round {
 	r := rand.New(rand.NewSource(seed))
 	wall := newWall(r)
 	hands, wall := distributeTiles(wall, dealer)
@@ -174,5 +218,6 @@ func NewRound(seed int64, wind string, dealer int) *Round {
 		Hands:          hands,
 		PrevailingWind: wind,
 		CurrentTurn:    dealer,
+		CurrentAction:  ActionDiscard,
 	}
 }
