@@ -19,8 +19,15 @@ type Event struct {
 	Tiles          []string `json:"tiles"`
 }
 
+type Player struct {
+	Name string `json:"name"`
+	Seat int    `json:"seat"`
+}
+
 type Game struct {
-	Round *mahjong.Round
+	Players [4]Player `json:"players"`
+
+	Round *mahjong.Round `json:"round"`
 
 	// Client connections registry
 	clients map[chan string]struct{}
@@ -62,7 +69,7 @@ func (g *Game) handleEvent(e Event) {
 	// We got a new event from the outside!
 	// Send event to all connected clients
 	var b bytes.Buffer
-	json.NewEncoder(&b).Encode(g.Round)
+	json.NewEncoder(&b).Encode(g)
 	for clientMessageChan := range g.clients {
 		clientMessageChan <- b.String()
 	}
@@ -81,38 +88,44 @@ func (g *Game) removeClient(c chan string) {
 }
 
 func (g *Game) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
-		return
-	}
+	if r.Method == http.MethodGet {
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+			return
+		}
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	// Each connection registers its own message channel with the Broker's connections registry
-	c := make(chan string)
+		// Each connection registers its own message channel with the Broker's connections registry
+		c := make(chan string)
 
-	// Signal the broker that we have a new connection
-	g.addClient(c)
+		// Signal the broker that we have a new connection
+		g.addClient(c)
 
-	// Remove this client from the map of connected clients
-	// when this handler exits.
-	defer g.removeClient(c)
+		// Remove this client from the map of connected clients
+		// when this handler exits.
+		defer g.removeClient(c)
 
-	// Listen to connection close and un-register c
-	notify := r.Context().Done()
-	go func() {
-		<-notify
-		g.removeClient(c)
-	}()
+		// Listen to connection close and un-register c
+		notify := r.Context().Done()
+		go func() {
+			<-notify
+			g.removeClient(c)
+		}()
 
-	for {
-		round := <-c
-		fmt.Fprintf(w, "data: %s\n\n", round)
-		flusher.Flush()
+		for {
+			game := <-c
+			fmt.Fprintf(w, "data: %s\n\n", game)
+			flusher.Flush()
+		}
+	} else if r.Method == http.MethodPost {
+
+	} else {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -194,5 +207,6 @@ func main() {
 
 	go sendMockEvents(game)
 
-	log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:3000", game))
+	http.Handle("/events", game)
+	log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:3000", nil))
 }
