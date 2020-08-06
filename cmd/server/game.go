@@ -56,7 +56,7 @@ func (g *Game) handleEvent(e Event) {
 	case "draw":
 		g.Round.Draw(e.Seat)
 	case "reset":
-		g.Round = mahjong.NewRound(0, mahjong.DirectionEast, mahjong.DirectionEast)
+		g.Round = mahjong.NewRound(0, mahjong.DirectionEast)
 	}
 
 	// We got a new event from the outside!
@@ -188,7 +188,7 @@ func sendMockEvents(game *Game) {
 
 func main() {
 	game := &Game{
-		Round:   mahjong.NewRound(0, mahjong.DirectionEast, mahjong.DirectionEast),
+		Round:   mahjong.NewRound(0, mahjong.DirectionEast),
 		clients: make(map[chan string]struct{}),
 	}
 

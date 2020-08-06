@@ -121,7 +121,6 @@ type Round struct {
 	Wall           []string
 	Discards       []string
 	Hands          []Hand
-	PrevailingWind int
 	SequenceNumber int
 	CurrentTurn    int
 	CurrentAction  string
@@ -132,7 +131,6 @@ func (r *Round) MarshalJSON() ([]byte, error) {
 		DrawsLeft      int      `json:"draws_left"`
 		Discards       []string `json:"discards"`
 		Hands          []Hand   `json:"hands"`
-		PrevailingWind int      `json:"prevailing_wind"`
 		SequenceNumber int      `json:"sequence_number"`
 		CurrentTurn    int      `json:"current_turn"`
 		CurrentAction  string   `json:"current_action"`
@@ -140,7 +138,6 @@ func (r *Round) MarshalJSON() ([]byte, error) {
 		DrawsLeft:      len(r.Wall),
 		Discards:       r.Discards,
 		Hands:          r.Hands,
-		PrevailingWind: r.PrevailingWind,
 		SequenceNumber: r.SequenceNumber,
 		CurrentTurn:    r.CurrentTurn,
 		CurrentAction:  r.CurrentAction,
@@ -383,16 +380,15 @@ func (r *Round) Draw(seat int) error {
 	return nil
 }
 
-func NewRound(seed int64, wind int, dealer int) *Round {
+func NewRound(seed int64, dealer int) *Round {
 	r := rand.New(rand.NewSource(seed))
 	wall := newWall(r)
 	hands, wall := distributeTiles(wall, dealer)
 	return &Round{
-		Discards:       []string{},
-		Wall:           wall,
-		Hands:          hands,
-		PrevailingWind: wind,
-		CurrentTurn:    dealer,
-		CurrentAction:  ActionDiscard,
+		Discards:      []string{},
+		Wall:          wall,
+		Hands:         hands,
+		CurrentTurn:   dealer,
+		CurrentAction: ActionDiscard,
 	}
 }
