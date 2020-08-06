@@ -142,15 +142,6 @@ func drawBack(wall []string) (string, []string) {
 	return drawn, wall
 }
 
-func isFlower(tile string) bool {
-	for _, flower := range FlowerTiles {
-		if tile == flower {
-			return true
-		}
-	}
-	return false
-}
-
 func contains(tiles []string, tile string) bool {
 	for _, t := range tiles {
 		if t == tile {
@@ -158,6 +149,10 @@ func contains(tiles []string, tile string) bool {
 		}
 	}
 	return false
+}
+
+func isFlower(tile string) bool {
+	return contains(FlowerTiles, tile)
 }
 
 func distributeTiles(wall []string, dealer int) ([]Hand, []string) {
@@ -208,20 +203,24 @@ func distributeTiles(wall []string, dealer int) ([]Hand, []string) {
 	return hands, wall
 }
 
-func removeTile(tiles []string, tile string) ([]string, bool) {
+func removeTiles(tiles []string, tile string, count int) ([]string, int) {
 	i := 0
-	removed := false
+	removedCount := 0
 	for _, t := range tiles {
-		if t == tile {
-			tile = ""
-			removed = true
+		if t == tile && removedCount < count {
+			removedCount++
 		} else {
 			tiles[i] = t
 			i++
 		}
 	}
 	tiles = tiles[:i]
-	return tiles, removed
+	return tiles, removedCount
+}
+
+func removeTile(tiles []string, tile string) ([]string, bool) {
+	tiles, removedCount := removeTiles(tiles, tile, 1)
+	return tiles, removedCount > 0
 }
 
 func (r *Round) Discard(seat int, tile string) error {
@@ -268,8 +267,39 @@ func (r *Round) 吃(seat int, tile1, tile2 string) error {
 	}
 	r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile1)
 	r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile2)
-	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, seq[:]...)
+	r.Discards = r.Discards[:len(r.Discards)-1]
+	r.CurrentAction = ActionDiscard
+	return nil
+}
+
+func (r *Round) PreviousTurn() int {
+	return (r.CurrentTurn + 3) % 4
+}
+
+func countTiles(tiles []string, tile string) int {
+	count := 0
+	for _, t := range tiles {
+		if t == tile {
+			count++
+		}
+	}
+	return count
+}
+
+func (r *Round) 碰(seat int, tile string) error {
+	if seat == r.PreviousTurn() {
+		return errors.New("wrong turn")
+	}
+	if r.CurrentAction != ActionDraw {
+		return errors.New("wrong action")
+	}
+	if countTiles(r.Hands[seat].Concealed, tile) < 2 {
+		return errors.New("not enough tiles")
+	}
+	r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 2)
+	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, tile, tile, tile)
+	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
 	return nil
 }

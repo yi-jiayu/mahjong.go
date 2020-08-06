@@ -297,3 +297,49 @@ func Test_validSequence(t *testing.T) {
 		})
 	}
 }
+
+func TestRound_碰(t *testing.T) {
+	t.Run("wrong turn", func(t *testing.T) {
+		round := &Round{CurrentTurn: DirectionEast}
+		err := round.碰(DirectionNorth, "")
+		assert.EqualError(t, err, "wrong turn")
+	})
+	t.Run("wrong action", func(t *testing.T) {
+		round := &Round{CurrentAction: ActionDiscard}
+		err := round.碰(DirectionEast, "")
+		assert.EqualError(t, err, "wrong action")
+	})
+	t.Run("no such tile", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Hands:         []Hand{{}},
+		}
+		err := round.碰(DirectionEast, TileBamboo1)
+		assert.EqualError(t, err, "not enough tiles")
+	})
+	t.Run("not enough tiles", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Hands:         []Hand{{Concealed: []string{TileBamboo1}}},
+		}
+		err := round.碰(DirectionEast, TileBamboo1)
+		assert.EqualError(t, err, "not enough tiles")
+	})
+	t.Run("success", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []string{TileBamboo4, TileBamboo4},
+			Hands:         []Hand{{Concealed: []string{TileWindsWest, TileBamboo4, TileBamboo4}}},
+		}
+		err := round.碰(DirectionEast, TileBamboo4)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileBamboo4}, round.Discards)
+		assert.Equal(t, []string{TileWindsWest}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, []string{TileBamboo4, TileBamboo4, TileBamboo4}, round.Hands[DirectionEast].Revealed)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+}
