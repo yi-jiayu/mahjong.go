@@ -304,6 +304,7 @@ func (r *Round) Peng(seat int, tile string) error {
 	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, tile, tile, tile)
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
+	r.CurrentTurn = seat
 	r.SequenceNumber++
 	return nil
 }

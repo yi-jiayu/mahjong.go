@@ -334,14 +334,14 @@ func TestRound_Peng(t *testing.T) {
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
 			Discards:      []string{TileBamboo4, TileBamboo4},
-			Hands:         []Hand{{Concealed: []string{TileWindsWest, TileBamboo4, TileBamboo4}}},
+			Hands:         []Hand{{}, {Concealed: []string{TileWindsWest, TileBamboo4, TileBamboo4}}},
 		}
-		err := round.Peng(DirectionEast, TileBamboo4)
+		err := round.Peng(DirectionSouth, TileBamboo4)
 		assert.NoError(t, err)
 		assert.Equal(t, []string{TileBamboo4}, round.Discards)
-		assert.Equal(t, []string{TileWindsWest}, round.Hands[DirectionEast].Concealed)
-		assert.Equal(t, []string{TileBamboo4, TileBamboo4, TileBamboo4}, round.Hands[DirectionEast].Revealed)
-		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, []string{TileWindsWest}, round.Hands[DirectionSouth].Concealed)
+		assert.Equal(t, []string{TileBamboo4, TileBamboo4, TileBamboo4}, round.Hands[DirectionSouth].Revealed)
+		assert.Equal(t, DirectionSouth, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
 		assert.Equal(t, 1, round.SequenceNumber)
 	})
