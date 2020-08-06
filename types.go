@@ -304,6 +304,24 @@ func (r *Round) 碰(seat int, tile string) error {
 	return nil
 }
 
+func (r *Round) Draw(seat int) error {
+	if r.CurrentTurn != seat {
+		return errors.New("wrong turn")
+	}
+	if r.CurrentAction != ActionDraw {
+		return errors.New("wrong action")
+	}
+	var draw string
+	draw, r.Wall = drawFront(r.Wall)
+	for isFlower(draw) {
+		r.Hands[seat].Flowers = append(r.Hands[seat].Flowers, draw)
+		draw, r.Wall = drawBack(r.Wall)
+	}
+	r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
+	r.CurrentAction = ActionDiscard
+	return nil
+}
+
 func NewRound(seed int64, wind int, dealer int) *Round {
 	r := rand.New(rand.NewSource(seed))
 	wall := newWall(r)

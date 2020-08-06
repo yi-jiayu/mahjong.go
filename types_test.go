@@ -343,3 +343,60 @@ func TestRound_碰(t *testing.T) {
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
 	})
 }
+
+func TestRound_Draw(t *testing.T) {
+	t.Run("wrong turn", func(t *testing.T) {
+		round := &Round{CurrentTurn: DirectionEast}
+		err := round.Draw(DirectionSouth)
+		assert.EqualError(t, err, "wrong turn")
+	})
+	t.Run("wrong action", func(t *testing.T) {
+		round := &Round{CurrentAction: ActionDiscard}
+		err := round.Draw(DirectionEast)
+		assert.EqualError(t, err, "wrong action")
+	})
+	t.Run("success", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileBamboo1, TileBamboo2},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Hands:         []Hand{{Concealed: []string{TileWindsWest}}},
+		}
+		err := round.Draw(DirectionEast)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileBamboo2}, round.Wall)
+		assert.Equal(t, []string{TileWindsWest, TileBamboo1}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+	t.Run("drawing flower", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileGentlemen1, TileBamboo1, TileBamboo2},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Hands:         []Hand{{Concealed: []string{TileWindsWest}}},
+		}
+		err := round.Draw(DirectionEast)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileBamboo1}, round.Wall)
+		assert.Equal(t, []string{TileWindsWest, TileBamboo2}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, []string{TileGentlemen1}, round.Hands[DirectionEast].Flowers)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+	t.Run("drawing flower again", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileGentlemen1, TileBamboo1, TileBamboo2, TileGentlemen2},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Hands:         []Hand{{Concealed: []string{TileWindsWest}}},
+		}
+		err := round.Draw(DirectionEast)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileBamboo1}, round.Wall)
+		assert.Equal(t, []string{TileWindsWest, TileBamboo2}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, []string{TileGentlemen1, TileGentlemen2}, round.Hands[DirectionEast].Flowers)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+}
