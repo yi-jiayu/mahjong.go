@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -14,6 +15,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+
+	"github.com/yi-jiayu/mahjong.go"
 )
 
 type PlayerRegistry struct {
@@ -49,6 +52,7 @@ var (
 
 type Room struct {
 	Players []string
+	Round   *mahjong.Round
 
 	sync.Mutex
 	clients map[chan string]struct{}
@@ -60,9 +64,11 @@ func (r *Room) MarshalJSON() ([]byte, error) {
 		players[i] = playerRegistry.GetName(playerID)
 	}
 	return json.Marshal(struct {
-		Players []string `json:"players"`
+		Players []string       `json:"players"`
+		Round   *mahjong.Round `json:"round"`
 	}{
 		Players: players,
+		Round:   r.Round,
 	})
 }
 
@@ -115,6 +121,17 @@ func (r *Room) broadcast() {
 	for c := range r.clients {
 		c <- b.String()
 	}
+}
+
+func (r *Room) StartRound() error {
+	r.Lock()
+	defer r.Unlock()
+	if len(r.Players) < 4 {
+		return errors.New("not enough players")
+	}
+	r.Round = mahjong.NewRound(0, mahjong.DirectionEast)
+	r.Round.Deal()
+	return nil
 }
 
 func main() {
@@ -222,5 +239,30 @@ func main() {
 		room.Players = append(room.Players, playerID)
 		room.broadcast()
 	})
-	r.Run()
+	r.POST("/rooms/:id/start", func(c *gin.Context) {
+		roomID := strings.ToUpper(c.Param("id"))
+		room := roomRegistry.GetRoom(roomID)
+		if room == nil {
+			c.String(http.StatusNotFound, "Not Found")
+			return
+		}
+		playerID := c.MustGet("id").(string)
+		found := false
+		for _, id := range room.Players {
+			if id == playerID {
+				found = true
+			}
+		}
+		if !found {
+			c.String(http.StatusForbidden, "Not In Room")
+			return
+		}
+		err := room.StartRound()
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		room.broadcast()
+	})
+	r.Run("localhost:8080")
 }
