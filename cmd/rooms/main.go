@@ -17,13 +17,25 @@ import (
 )
 
 type PlayerRegistry struct {
-	sync.Mutex
+	sync.RWMutex
 	Names map[string]string
 }
 
+func (r *PlayerRegistry) GetName(id string) string {
+	r.RLock()
+	defer r.RUnlock()
+	return r.Names[id]
+}
+
 type RoomRegistry struct {
-	sync.Mutex
+	sync.RWMutex
 	Rooms map[string]*Room
+}
+
+func (r *RoomRegistry) GetRoom(id string) *Room {
+	r.RLock()
+	defer r.RUnlock()
+	return r.Rooms[id]
 }
 
 var (
@@ -45,7 +57,7 @@ type Room struct {
 func (r *Room) MarshalJSON() ([]byte, error) {
 	players := make([]string, len(r.Players))
 	for i, playerID := range r.Players {
-		players[i] = playerRegistry.Names[playerID]
+		players[i] = playerRegistry.GetName(playerID)
 	}
 	return json.Marshal(struct {
 		Players []string `json:"players"`
@@ -135,10 +147,10 @@ func main() {
 		c.Next()
 	})
 	r.GET("/self", func(c *gin.Context) {
-		playerID := c.MustGet("id").(string)
-		name := playerRegistry.Names[playerID]
+		id := c.MustGet("id").(string)
+		name := playerRegistry.GetName(id)
 		c.JSON(http.StatusOK, map[string]string{
-			"id":   playerID,
+			"id":   id,
 			"name": name,
 		})
 	})
@@ -151,8 +163,8 @@ func main() {
 	})
 	r.GET("/rooms/:id/live", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
-		room, ok := roomRegistry.Rooms[roomID]
-		if !ok {
+		room := roomRegistry.GetRoom(roomID)
+		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
@@ -192,8 +204,8 @@ func main() {
 	r.POST("/rooms/:id/players", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
 		playerID := c.MustGet("id").(string)
-		room, ok := roomRegistry.Rooms[roomID]
-		if !ok {
+		room := roomRegistry.GetRoom(roomID)
+		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
