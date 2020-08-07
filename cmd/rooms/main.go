@@ -16,9 +16,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type PlayerRegistry struct {
+	sync.Mutex
+	Names map[string]string
+}
+
+type RoomRegistry struct {
+	sync.Mutex
+	Rooms map[string]*Room
+}
+
 var (
-	names = make(map[string]string)
-	rooms = make(map[string]*Room)
+	playerRegistry = &PlayerRegistry{
+		Names: map[string]string{},
+	}
+	roomRegistry = &RoomRegistry{
+		Rooms: map[string]*Room{},
+	}
 )
 
 type Room struct {
@@ -31,7 +45,7 @@ type Room struct {
 func (r *Room) MarshalJSON() ([]byte, error) {
 	players := make([]string, len(r.Players))
 	for i, playerID := range r.Players {
-		players[i] = names[playerID]
+		players[i] = playerRegistry.Names[playerID]
 	}
 	return json.Marshal(struct {
 		Players []string `json:"players"`
@@ -47,11 +61,14 @@ func newSessionID() string {
 }
 
 func newRoom(players ...string) string {
+	roomRegistry.Lock()
+	defer roomRegistry.Unlock()
+
 	charset := "ABCDEFGHIJKLMNOOPQRSTUVWXYZ"
 	for {
 		id := fmt.Sprintf("%c%c%c%c", charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))])
-		if _, ok := rooms[id]; !ok {
-			rooms[id] = &Room{
+		if _, ok := roomRegistry.Rooms[id]; !ok {
+			roomRegistry.Rooms[id] = &Room{
 				Players: players,
 				clients: map[chan string]struct{}{},
 			}
@@ -103,13 +120,15 @@ func main() {
 		} else {
 			id := newSessionID()
 			session.Set("id", id)
+			playerRegistry.Lock()
 			for {
 				name := fmt.Sprintf("anon#%04d", rand.Intn(1000))
-				if _, ok := names[id]; !ok {
-					names[id] = name
+				if _, ok := playerRegistry.Names[id]; !ok {
+					playerRegistry.Names[id] = name
 					break
 				}
 			}
+			playerRegistry.Unlock()
 			session.Save()
 			c.Set("id", id)
 		}
@@ -117,7 +136,7 @@ func main() {
 	})
 	r.GET("/self", func(c *gin.Context) {
 		playerID := c.MustGet("id").(string)
-		name := names[playerID]
+		name := playerRegistry.Names[playerID]
 		c.JSON(http.StatusOK, map[string]string{
 			"id":   playerID,
 			"name": name,
@@ -132,7 +151,7 @@ func main() {
 	})
 	r.GET("/rooms/:id/live", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
-		room, ok := rooms[roomID]
+		room, ok := roomRegistry.Rooms[roomID]
 		if !ok {
 			c.String(http.StatusNotFound, "Not Found")
 			return
@@ -173,7 +192,7 @@ func main() {
 	r.POST("/rooms/:id/players", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
 		playerID := c.MustGet("id").(string)
-		room, ok := rooms[roomID]
+		room, ok := roomRegistry.Rooms[roomID]
 		if !ok {
 			c.String(http.StatusNotFound, "Not Found")
 			return
