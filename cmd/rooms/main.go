@@ -22,10 +22,22 @@ var (
 )
 
 type Room struct {
-	Players []string `json:"players"`
+	Players []string
 
 	sync.Mutex
 	clients map[chan string]struct{}
+}
+
+func (r *Room) MarshalJSON() ([]byte, error) {
+	players := make([]string, len(r.Players))
+	for i, playerID := range r.Players {
+		players[i] = names[playerID]
+	}
+	return json.Marshal(struct {
+		Players []string `json:"players"`
+	}{
+		Players: players,
+	})
 }
 
 func newSessionID() string {
