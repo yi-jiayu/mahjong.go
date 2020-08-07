@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -15,8 +18,15 @@ import (
 
 var (
 	names = make(map[string]string)
-	rooms = make(map[string][]string)
+	rooms = make(map[string]*Room)
 )
+
+type Room struct {
+	Players []string `json:"players"`
+
+	sync.Mutex
+	clients map[chan string]struct{}
+}
 
 func newSessionID() string {
 	b := make([]byte, 32)
@@ -29,9 +39,40 @@ func newRoom(players ...string) string {
 	for {
 		id := fmt.Sprintf("%c%c%c%c", charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))])
 		if _, ok := rooms[id]; !ok {
-			rooms[id] = players
+			rooms[id] = &Room{
+				Players: players,
+				clients: map[chan string]struct{}{},
+			}
 			return id
 		}
+	}
+}
+
+func (r *Room) addClient(c chan string) {
+	r.Lock()
+	defer r.Unlock()
+
+	r.clients[c] = struct{}{}
+	var b bytes.Buffer
+	json.NewEncoder(&b).Encode(r)
+	c <- b.String()
+}
+
+func (r *Room) removeClient(c chan string) {
+	r.Lock()
+	defer r.Unlock()
+
+	delete(r.clients, c)
+}
+
+func (r *Room) broadcast() {
+	r.Lock()
+	defer r.Unlock()
+
+	var b bytes.Buffer
+	json.NewEncoder(&b).Encode(r)
+	for c := range r.clients {
+		c <- b.String()
 	}
 }
 
@@ -70,23 +111,52 @@ func main() {
 			"name": name,
 		})
 	})
-	r.GET("/rooms", func(c *gin.Context) {
-		var resp strings.Builder
-		for roomID, playerIDs := range rooms {
-			playerNames := make([]string, len(playerIDs))
-			for i, p := range playerIDs {
-				playerNames[i] = names[p]
-			}
-			resp.WriteString(fmt.Sprintf("%s\t%s\n", roomID, strings.Join(playerNames, ", ")))
-		}
-		c.String(http.StatusOK, "%s", resp.String())
-	})
 	r.POST("/rooms", func(c *gin.Context) {
 		id := c.MustGet("id").(string)
 		roomID := newRoom(id)
 		c.JSON(http.StatusOK, map[string]string{
 			"room_id": roomID,
 		})
+	})
+	r.GET("/rooms/:id/live", func(c *gin.Context) {
+		roomID := strings.ToUpper(c.Param("id"))
+		room, ok := rooms[roomID]
+		if !ok {
+			c.String(http.StatusNotFound, "Not Found")
+			return
+		}
+		flusher, ok := c.Writer.(http.Flusher)
+		if !ok {
+			c.String(http.StatusInternalServerError, "Streaming Unsupported")
+			return
+		}
+
+		c.Header("Content-Type", "text/event-stream")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+
+		// Each connection registers its own message channel with the Broker's connections registry
+		ch := make(chan string)
+
+		// Signal the broker that we have a new connection
+		go room.addClient(ch)
+
+		// Remove this client from the map of connected clients
+		// when this handler exits.
+		defer room.removeClient(ch)
+
+		// Listen to connection close and un-register c
+		notify := c.Request.Context().Done()
+		go func() {
+			<-notify
+			room.removeClient(ch)
+		}()
+
+		for {
+			game := <-ch
+			fmt.Fprintf(c.Writer, "data: %s\n\n", game)
+			flusher.Flush()
+		}
 	})
 	r.POST("/rooms/:id/players", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
@@ -96,17 +166,18 @@ func main() {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		if len(room) == 4 {
+		if len(room.Players) == 4 {
 			c.String(http.StatusBadRequest, "Room Full")
 			return
 		}
-		for _, p := range room {
+		for _, p := range room.Players {
 			if p == playerID {
 				c.String(http.StatusBadRequest, "Already Joined")
 				return
 			}
 		}
-		rooms[roomID] = append(room, playerID)
+		room.Players = append(room.Players, playerID)
+		room.broadcast()
 	})
 	r.Run()
 }
