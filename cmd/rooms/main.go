@@ -160,8 +160,8 @@ func (r *Room) StartRound(nonce int) error {
 		return errors.New("not enough players")
 	}
 	r.Round = mahjong.NewRound(0, mahjong.DirectionEast)
-	r.Round.Deal()
 	r.Phase = PhaseInProgress
+	r.Nonce++
 	return nil
 }
 
