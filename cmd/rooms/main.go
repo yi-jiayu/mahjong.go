@@ -273,5 +273,32 @@ func main() {
 		}
 		room.broadcast()
 	})
+	r.GET("/rooms/:id/self", func(c *gin.Context) {
+		roomID := strings.ToUpper(c.Param("id"))
+		room := roomRegistry.GetRoom(roomID)
+		if room == nil {
+			c.String(http.StatusNotFound, "Not Found")
+			return
+		}
+		if room.Phase != PhaseInProgress {
+			c.JSON(http.StatusOK, map[string]string{})
+			return
+		}
+		playerID := c.MustGet("id").(string)
+		var seat int
+		var concealed []string
+		for i, id := range room.Players {
+			if id == playerID {
+				seat = i
+				concealed = room.Round.Hands[i].Concealed
+				c.JSON(http.StatusOK, map[string]interface{}{
+					"seat":      seat,
+					"concealed": concealed,
+				})
+				return
+			}
+		}
+		c.JSON(http.StatusOK, map[string]string{})
+	})
 	r.Run("localhost:8080")
 }
