@@ -117,6 +117,21 @@ func (r *Room) addClient(c chan string) {
 	c <- b.String()
 }
 
+func (r *Room) AddPlayer(id string) error {
+	r.Lock()
+	defer r.Unlock()
+	if len(r.Players) == 4 {
+		return errors.New("room full")
+	}
+	for _, p := range r.Players {
+		if p == id {
+			return errors.New("already joined")
+		}
+	}
+	r.Players = append(r.Players, id)
+	return nil
+}
+
 func (r *Room) removeClient(c chan string) {
 	r.Lock()
 	defer r.Unlock()
@@ -236,23 +251,17 @@ func main() {
 	})
 	r.POST("/rooms/:id/players", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
-		playerID := c.MustGet("id").(string)
 		room := roomRegistry.GetRoom(roomID)
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		if len(room.Players) == 4 {
-			c.String(http.StatusBadRequest, "Room Full")
+		playerID := c.MustGet("id").(string)
+		err := room.AddPlayer(playerID)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		for _, p := range room.Players {
-			if p == playerID {
-				c.String(http.StatusBadRequest, "Already Joined")
-				return
-			}
-		}
-		room.Players = append(room.Players, playerID)
 		room.broadcast()
 	})
 	r.POST("/rooms/:id/start", func(c *gin.Context) {
