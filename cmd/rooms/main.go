@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -40,6 +39,12 @@ func (r *RoomRegistry) GetRoom(id string) *Room {
 	r.RLock()
 	defer r.RUnlock()
 	return r.Rooms[id]
+}
+
+type Action struct {
+	Nonce int      `json:"nonce"`
+	Type  string   `json:"type"`
+	Tiles []string `json:"tiles"`
 }
 
 var (
@@ -150,12 +155,7 @@ func (r *Room) broadcast() {
 	}
 }
 
-func (r *Room) StartRound(nonce int) error {
-	r.Lock()
-	defer r.Unlock()
-	if nonce != r.Nonce {
-		return errors.New("invalid nonce")
-	}
+func (r *Room) startRound() error {
 	if len(r.Players) < 4 {
 		return errors.New("not enough players")
 	}
@@ -165,10 +165,35 @@ func (r *Room) StartRound(nonce int) error {
 	return nil
 }
 
+func (r *Room) HandleAction(playerID string, action Action) error {
+	r.Lock()
+	defer r.Unlock()
+	seat := -1
+	for i, p := range r.Players {
+		if p == playerID {
+			seat = i
+			break
+		}
+	}
+	if seat == -1 {
+		return errors.New("player not in room")
+	}
+	if action.Nonce != r.Nonce {
+		return errors.New("invalid nonce")
+	}
+	var err error
+	switch action.Type {
+	case "start":
+		err = r.startRound()
+	}
+	return err
+}
+
 func main() {
 	r := gin.Default()
 	store := memstore.NewStore([]byte("secret"))
 	r.Use(cors.New(cors.Config{
+		AllowHeaders:     []string{"Content-Type"},
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowCredentials: true,
 	}))
@@ -264,7 +289,7 @@ func main() {
 		}
 		room.broadcast()
 	})
-	r.POST("/rooms/:id/start", func(c *gin.Context) {
+	r.POST("/rooms/:id/actions", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
 		room := roomRegistry.GetRoom(roomID)
 		if room == nil {
@@ -272,23 +297,12 @@ func main() {
 			return
 		}
 		playerID := c.MustGet("id").(string)
-		found := false
-		for _, id := range room.Players {
-			if id == playerID {
-				found = true
-			}
-		}
-		if !found {
-			c.String(http.StatusForbidden, "Not In Room")
+		var action Action
+		if err := c.ShouldBindJSON(&action); err != nil {
+			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		nonce, err := strconv.Atoi(c.Query("nonce"))
-		if err != nil {
-			c.String(http.StatusBadRequest, "Invalid Nonce")
-			return
-		}
-		err = room.StartRound(nonce)
-		if err != nil {
+		if err := room.HandleAction(playerID, action); err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
