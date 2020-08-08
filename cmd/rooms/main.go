@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -56,6 +57,7 @@ const (
 )
 
 type Room struct {
+	Nonce   int
 	Phase   int
 	Players []string
 	Round   *mahjong.Round
@@ -70,10 +72,12 @@ func (r *Room) MarshalJSON() ([]byte, error) {
 		players[i] = playerRegistry.GetName(playerID)
 	}
 	return json.Marshal(struct {
+		Nonce   int            `json:"nonce"`
 		Phase   int            `json:"phase"`
 		Players []string       `json:"players"`
 		Round   *mahjong.Round `json:"round"`
 	}{
+		Nonce:   r.Nonce,
 		Phase:   r.Phase,
 		Players: players,
 		Round:   r.Round,
@@ -131,9 +135,12 @@ func (r *Room) broadcast() {
 	}
 }
 
-func (r *Room) StartRound() error {
+func (r *Room) StartRound(nonce int) error {
 	r.Lock()
 	defer r.Unlock()
+	if nonce != r.Nonce {
+		return errors.New("invalid nonce")
+	}
 	if len(r.Players) < 4 {
 		return errors.New("not enough players")
 	}
@@ -266,7 +273,12 @@ func main() {
 			c.String(http.StatusForbidden, "Not In Room")
 			return
 		}
-		err := room.StartRound()
+		nonce, err := strconv.Atoi(c.Query("nonce"))
+		if err != nil {
+			c.String(http.StatusBadRequest, "Invalid Nonce")
+			return
+		}
+		err = room.StartRound(nonce)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
