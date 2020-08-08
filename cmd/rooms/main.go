@@ -181,12 +181,19 @@ func (r *Room) HandleAction(playerID string, action Action) error {
 	if action.Nonce != r.Nonce {
 		return errors.New("invalid nonce")
 	}
-	var err error
 	switch action.Type {
 	case "start":
-		err = r.startRound()
+		return r.startRound()
+	case "discard":
+		if len(action.Tiles) < 0 {
+			return errors.New("not enough tiles")
+		}
+		return r.Round.Discard(seat, action.Tiles[0])
+	case "draw":
+		return r.Round.Draw(seat)
+	default:
+		return errors.New("invalid action")
 	}
-	return err
 }
 
 func main() {
