@@ -50,7 +50,13 @@ var (
 	}
 )
 
+const (
+	PhaseLobby = iota
+	PhaseInProgress
+)
+
 type Room struct {
+	Phase   int
 	Players []string
 	Round   *mahjong.Round
 
@@ -64,9 +70,11 @@ func (r *Room) MarshalJSON() ([]byte, error) {
 		players[i] = playerRegistry.GetName(playerID)
 	}
 	return json.Marshal(struct {
+		Phase   int            `json:"phase"`
 		Players []string       `json:"players"`
 		Round   *mahjong.Round `json:"round"`
 	}{
+		Phase:   r.Phase,
 		Players: players,
 		Round:   r.Round,
 	})
@@ -131,6 +139,7 @@ func (r *Room) StartRound() error {
 	}
 	r.Round = mahjong.NewRound(0, mahjong.DirectionEast)
 	r.Round.Deal()
+	r.Phase = PhaseInProgress
 	return nil
 }
 
