@@ -118,29 +118,26 @@ func (h Hand) MarshalJSON() ([]byte, error) {
 }
 
 type Round struct {
-	Wall           []string
-	Discards       []string
-	Hands          [4]Hand
-	SequenceNumber int
-	CurrentTurn    int
-	CurrentAction  string
+	Wall          []string
+	Discards      []string
+	Hands         [4]Hand
+	CurrentTurn   int
+	CurrentAction string
 }
 
 func (r *Round) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		DrawsLeft      int      `json:"draws_left"`
-		Discards       []string `json:"discards"`
-		Hands          [4]Hand  `json:"hands"`
-		SequenceNumber int      `json:"sequence_number"`
-		CurrentTurn    int      `json:"current_turn"`
-		CurrentAction  string   `json:"current_action"`
+		DrawsLeft     int      `json:"draws_left"`
+		Discards      []string `json:"discards"`
+		Hands         [4]Hand  `json:"hands"`
+		CurrentTurn   int      `json:"current_turn"`
+		CurrentAction string   `json:"current_action"`
 	}{
-		DrawsLeft:      len(r.Wall),
-		Discards:       r.Discards,
-		Hands:          r.Hands,
-		SequenceNumber: r.SequenceNumber,
-		CurrentTurn:    r.CurrentTurn,
-		CurrentAction:  r.CurrentAction,
+		DrawsLeft:     len(r.Wall),
+		Discards:      r.Discards,
+		Hands:         r.Hands,
+		CurrentTurn:   r.CurrentTurn,
+		CurrentAction: r.CurrentAction,
 	})
 }
 
@@ -291,7 +288,6 @@ func (r *Round) Discard(seat int, tile string) error {
 	r.Discards = append(r.Discards, tile)
 	r.CurrentTurn = (seat + 1) % 4
 	r.CurrentAction = ActionDraw
-	r.SequenceNumber++
 	return nil
 }
 
@@ -324,7 +320,6 @@ func (r *Round) Chow(seat int, tile1, tile2 string) error {
 	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, seq[:]...)
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
-	r.SequenceNumber++
 	return nil
 }
 
@@ -357,7 +352,6 @@ func (r *Round) Peng(seat int, tile string) error {
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
 	r.CurrentTurn = seat
-	r.SequenceNumber++
 	return nil
 }
 
@@ -376,7 +370,6 @@ func (r *Round) Draw(seat int) error {
 	}
 	r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
 	r.CurrentAction = ActionDiscard
-	r.SequenceNumber++
 	return nil
 }
 
