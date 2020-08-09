@@ -196,6 +196,11 @@ func (r *Room) HandleAction(playerID string, action Action) error {
 			return errors.New("not enough tiles")
 		}
 		return r.Round.Chow(seat, action.Tiles[0], action.Tiles[1])
+	case "peng":
+		if len(action.Tiles) < 1 {
+			return errors.New("not enough tiles")
+		}
+		return r.Round.Peng(seat, action.Tiles[0])
 	default:
 		return errors.New("invalid action")
 	}
