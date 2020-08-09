@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/memstore"
+	sredis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 
 	"github.com/yi-jiayu/mahjong.go"
@@ -207,7 +207,10 @@ func (r *Room) HandleAction(playerID string, action Action) error {
 
 func main() {
 	r := gin.Default()
-	store := memstore.NewStore([]byte("secret"))
+	store, err := sredis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
+	if err != nil {
+		panic(err)
+	}
 	r.Use(sessions.Sessions("MJSESSIONID", store))
 	r.Use(func(c *gin.Context) {
 		session := sessions.Default(c)
