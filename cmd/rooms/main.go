@@ -29,15 +29,57 @@ func (r *PlayerRegistry) GetName(id string) string {
 	return r.Names[id]
 }
 
-type RoomRegistry struct {
-	sync.RWMutex
-	Rooms map[string]*Room
+func newRoomID() string {
+	charset := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	return string([]byte{
+		charset[rand.Intn(len(charset))],
+		charset[rand.Intn(len(charset))],
+		charset[rand.Intn(len(charset))],
+		charset[rand.Intn(len(charset))],
+	})
 }
 
-func (r *RoomRegistry) GetRoom(id string) *Room {
+type RoomRepository interface {
+	Insert(room *Room) (string, error)
+	Save(id string, room *Room) error
+	Get(id string) (*Room, error)
+}
+
+type InMemoryRoomRepository struct {
+	sync.RWMutex
+	rooms map[string]*Room
+}
+
+func NewInMemoryRoomRepository() *InMemoryRoomRepository {
+	return &InMemoryRoomRepository{
+		rooms: map[string]*Room{},
+	}
+}
+
+func (r *InMemoryRoomRepository) Insert(room *Room) (string, error) {
+	r.Lock()
+	defer r.Unlock()
+	for {
+		id := newRoomID()
+		if _, ok := r.rooms[id]; ok {
+			continue
+		}
+		r.rooms[id] = room
+		return id, nil
+	}
+}
+
+func (r *InMemoryRoomRepository) Save(id string, room *Room) error {
+	r.Lock()
+	defer r.Unlock()
+	r.rooms[id] = room
+	return nil
+}
+
+func (r *InMemoryRoomRepository) Get(id string) (*Room, error) {
 	r.RLock()
 	defer r.RUnlock()
-	return r.Rooms[id]
+	return r.rooms[id], nil
 }
 
 type Action struct {
@@ -50,9 +92,7 @@ var (
 	playerRegistry = &PlayerRegistry{
 		Names: map[string]string{},
 	}
-	roomRegistry = &RoomRegistry{
-		Rooms: map[string]*Room{},
-	}
+	roomRepository RoomRepository = NewInMemoryRoomRepository()
 )
 
 const (
@@ -94,20 +134,10 @@ func newSessionID() string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-func newRoom(players ...string) string {
-	roomRegistry.Lock()
-	defer roomRegistry.Unlock()
-
-	charset := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	for {
-		id := fmt.Sprintf("%c%c%c%c", charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))])
-		if _, ok := roomRegistry.Rooms[id]; !ok {
-			roomRegistry.Rooms[id] = &Room{
-				Players: players,
-				clients: map[chan string]struct{}{},
-			}
-			return id
-		}
+func NewRoom(host string) *Room {
+	return &Room{
+		Players: []string{host},
+		clients: map[chan string]struct{}{},
 	}
 }
 
@@ -243,14 +273,15 @@ func main() {
 	})
 	r.POST("/rooms", func(c *gin.Context) {
 		id := c.MustGet("id").(string)
-		roomID := newRoom(id)
+		room := NewRoom(id)
+		roomID, _ := roomRepository.Insert(room)
 		c.JSON(http.StatusOK, map[string]string{
 			"room_id": roomID,
 		})
 	})
 	r.GET("/rooms/:id/live", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
-		room := roomRegistry.GetRoom(roomID)
+		room, _ := roomRepository.Get(roomID)
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
@@ -290,7 +321,7 @@ func main() {
 	})
 	r.POST("/rooms/:id/players", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
-		room := roomRegistry.GetRoom(roomID)
+		room, _ := roomRepository.Get(roomID)
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
@@ -305,7 +336,7 @@ func main() {
 	})
 	r.POST("/rooms/:id/actions", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
-		room := roomRegistry.GetRoom(roomID)
+		room, _ := roomRepository.Get(roomID)
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
@@ -324,7 +355,7 @@ func main() {
 	})
 	r.GET("/rooms/:id/self", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
-		room := roomRegistry.GetRoom(roomID)
+		room, _ := roomRepository.Get(roomID)
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
