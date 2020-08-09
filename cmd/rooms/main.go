@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
@@ -209,11 +208,6 @@ func (r *Room) HandleAction(playerID string, action Action) error {
 func main() {
 	r := gin.Default()
 	store := memstore.NewStore([]byte("secret"))
-	r.Use(cors.New(cors.Config{
-		AllowHeaders:     []string{"Content-Type"},
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowCredentials: true,
-	}))
 	r.Use(sessions.Sessions("MJSESSIONID", store))
 	r.Use(func(c *gin.Context) {
 		session := sessions.Default(c)
