@@ -98,7 +98,7 @@ func newRoom(players ...string) string {
 	roomRegistry.Lock()
 	defer roomRegistry.Unlock()
 
-	charset := "ABCDEFGHIJKLMNOOPQRSTUVWXYZ"
+	charset := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	for {
 		id := fmt.Sprintf("%c%c%c%c", charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))], charset[rand.Intn(len(charset))])
 		if _, ok := roomRegistry.Rooms[id]; !ok {
