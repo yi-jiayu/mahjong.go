@@ -12,6 +12,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+
+	"github.com/yi-jiayu/mahjong.go"
 )
 
 type PlayerRegistry struct {
@@ -184,5 +186,53 @@ func main() {
 		}
 		c.JSON(http.StatusOK, map[string]string{})
 	})
+	if gin.IsDebugging() {
+		r.POST("/debug/rooms/:id/reshuffle", func(c *gin.Context) {
+			roomID := strings.ToUpper(c.Param("id"))
+			room, _ := roomRepository.Get(roomID)
+			if room == nil {
+				c.String(http.StatusNotFound, "Not Found")
+				return
+			}
+			if room.Phase != PhaseInProgress {
+				c.String(http.StatusBadRequest, "not in progress")
+				return
+			}
+			room.Round = mahjong.NewRound(rand.Int63(), mahjong.DirectionEast)
+			room.broadcast()
+		})
+		r.GET("/debug/rooms/:id/wall", func(c *gin.Context) {
+			roomID := strings.ToUpper(c.Param("id"))
+			room, _ := roomRepository.Get(roomID)
+			if room == nil {
+				c.String(http.StatusNotFound, "Not Found")
+				return
+			}
+			if room.Phase != PhaseInProgress {
+				c.String(http.StatusBadRequest, "not in progress")
+				return
+			}
+			c.JSON(http.StatusOK, room.Round.Wall)
+		})
+		r.POST("/debug/rooms/:id/wall", func(c *gin.Context) {
+			roomID := strings.ToUpper(c.Param("id"))
+			room, _ := roomRepository.Get(roomID)
+			if room == nil {
+				c.String(http.StatusNotFound, "Not Found")
+				return
+			}
+			if room.Phase != PhaseInProgress {
+				c.String(http.StatusBadRequest, "not in progress")
+				return
+			}
+			tile := c.Query("tile")
+			if tile == "" {
+				c.String(http.StatusBadRequest, "tile not provided")
+				return
+			}
+			room.Round.Wall = append([]string{tile}, room.Round.Wall...)
+			room.broadcast()
+		})
+	}
 	r.Run("localhost:8080")
 }
