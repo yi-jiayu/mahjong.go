@@ -402,13 +402,7 @@ func (r *Round) drawFlower(seat int) {
 }
 
 func (r *Round) Kong(seat int, tile string) error {
-	if seat == r.PreviousTurn() {
-		return errors.New("wrong turn")
-	}
-	if r.CurrentAction != ActionDraw {
-		return errors.New("wrong action")
-	}
-	if countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
+	if seat != r.PreviousTurn() && countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
 		r.Discards = r.Discards[:len(r.Discards)-1]
 		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 3)
 		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile, tile})
@@ -417,21 +411,19 @@ func (r *Round) Kong(seat int, tile string) error {
 		r.CurrentTurn = seat
 		return nil
 	}
-	if i := indexOfPeng(r.Hands[seat].Revealed, tile); i != -1 && contains(r.Hands[seat].Concealed, tile) {
-		r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile)
-		r.Hands[seat].Revealed[i] = append(r.Hands[seat].Revealed[i], tile)
-		r.drawFlower(seat)
-		r.CurrentAction = ActionDiscard
-		r.CurrentTurn = seat
-		return nil
-	}
-	if countTiles(r.Hands[seat].Concealed, tile) == 4 {
-		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 4)
-		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile, tile})
-		r.drawFlower(seat)
-		r.CurrentAction = ActionDiscard
-		r.CurrentTurn = seat
-		return nil
+	if r.CurrentTurn == seat && r.CurrentAction == ActionDiscard {
+		if i := indexOfPeng(r.Hands[seat].Revealed, tile); i != -1 && contains(r.Hands[seat].Concealed, tile) {
+			r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile)
+			r.Hands[seat].Revealed[i] = append(r.Hands[seat].Revealed[i], tile)
+			r.drawFlower(seat)
+			return nil
+		}
+		if countTiles(r.Hands[seat].Concealed, tile) == 4 {
+			r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 4)
+			r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile, tile})
+			r.drawFlower(seat)
+			return nil
+		}
 	}
 	return errors.New("not allowed")
 }
