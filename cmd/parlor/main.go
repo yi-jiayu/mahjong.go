@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
@@ -35,6 +36,10 @@ func newSessionID() string {
 	b := make([]byte, 32)
 	rand.Read(b)
 	return base64.StdEncoding.EncodeToString(b)
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func main() {

@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"math/rand"
 	"sync"
 
 	"github.com/yi-jiayu/mahjong.go"
@@ -138,7 +139,7 @@ func (r *Room) startRound() error {
 	if len(r.Players) < 4 {
 		return errors.New("not enough players")
 	}
-	r.Round = mahjong.NewRound(0, mahjong.DirectionEast)
+	r.Round = mahjong.NewRound(rand.Int63(), mahjong.DirectionEast)
 	r.Phase = PhaseInProgress
 	r.Nonce++
 	return nil
