@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,10 +39,7 @@ func newSessionID() string {
 
 func main() {
 	r := gin.Default()
-	store, err := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
-	if err != nil {
-		panic(err)
-	}
+	store := memstore.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("MJSESSIONID", store))
 	r.Use(func(c *gin.Context) {
 		session := sessions.Default(c)

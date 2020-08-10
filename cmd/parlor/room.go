@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"sync"
@@ -22,6 +23,47 @@ type Room struct {
 
 	sync.Mutex
 	clients map[chan string]struct{}
+}
+
+func (r *Room) UnmarshalBinary(data []byte) error {
+	rdr := bytes.NewReader(data)
+	dec := gob.NewDecoder(rdr)
+	var room struct {
+		Nonce   int
+		Phase   int
+		Players []string
+		Round   *mahjong.Round
+	}
+	err := dec.Decode(&room)
+	if err != nil {
+		return err
+	}
+	r.Nonce = room.Nonce
+	r.Phase = room.Phase
+	r.Players = room.Players
+	r.Round = room.Round
+	r.clients = map[chan string]struct{}{}
+	return nil
+}
+
+func (r *Room) MarshalBinary() ([]byte, error) {
+	var b bytes.Buffer
+	enc := gob.NewEncoder(&b)
+	err := enc.Encode(struct {
+		Nonce   int
+		Phase   int
+		Players []string
+		Round   *mahjong.Round
+	}{
+		Nonce:   r.Nonce,
+		Phase:   r.Phase,
+		Players: r.Players,
+		Round:   r.Round,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
 }
 
 func (r *Room) MarshalJSON() ([]byte, error) {
