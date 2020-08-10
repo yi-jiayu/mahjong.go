@@ -373,6 +373,69 @@ func (r *Round) Draw(seat int) error {
 	return nil
 }
 
+func indexOfPeng(revealed [][]string, tile string) int {
+	for i, meld := range revealed {
+		if len(meld) == 3 && meld[0] == tile && meld[1] == tile && meld[2] == tile {
+			return i
+		}
+	}
+	return -1
+}
+
+func (r *Round) lastDiscard() string {
+	if len(r.Discards) > 0 {
+		return r.Discards[len(r.Discards)-1]
+	}
+	return ""
+}
+
+func (r *Round) drawFlower(seat int) {
+	for {
+		var draw string
+		draw, r.Wall = drawBack(r.Wall)
+		if !isFlower(draw) {
+			r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
+			return
+		}
+		r.Hands[seat].Flowers = append(r.Hands[seat].Flowers, draw)
+	}
+}
+
+func (r *Round) Kong(seat int, tile string) error {
+	if seat == r.PreviousTurn() {
+		return errors.New("wrong turn")
+	}
+	if r.CurrentAction != ActionDraw {
+		return errors.New("wrong action")
+	}
+	if countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
+		r.Discards = r.Discards[:len(r.Discards)-1]
+		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 3)
+		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile, tile})
+		r.drawFlower(seat)
+		r.CurrentAction = ActionDiscard
+		r.CurrentTurn = seat
+		return nil
+	}
+	if i := indexOfPeng(r.Hands[seat].Revealed, tile); i != -1 && contains(r.Hands[seat].Concealed, tile) {
+		r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile)
+		r.Hands[seat].Revealed[i] = append(r.Hands[seat].Revealed[i], tile)
+		r.drawFlower(seat)
+		r.CurrentAction = ActionDiscard
+		r.CurrentTurn = seat
+		return nil
+	}
+	if countTiles(r.Hands[seat].Concealed, tile) == 4 {
+		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 4)
+		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile, tile})
+		r.drawFlower(seat)
+		r.CurrentAction = ActionDiscard
+		r.CurrentTurn = seat
+		return nil
+	}
+	return errors.New("not allowed")
+}
+
 func NewRound(seed int64, dealer int) *Round {
 	r := rand.New(rand.NewSource(seed))
 	wall := newWall(r)

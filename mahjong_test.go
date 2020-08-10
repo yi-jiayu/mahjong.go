@@ -400,3 +400,123 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
 	})
 }
+
+func TestRound_Kong(t *testing.T) {
+	t.Run("wrong turn", func(t *testing.T) {
+		round := &Round{CurrentTurn: DirectionEast}
+		err := round.Peng(DirectionNorth, "")
+		assert.EqualError(t, err, "wrong turn")
+	})
+	t.Run("wrong action", func(t *testing.T) {
+		round := &Round{CurrentAction: ActionDiscard}
+		err := round.Peng(DirectionEast, "")
+		assert.EqualError(t, err, "wrong action")
+	})
+	t.Run("tiles exposed, tile from discards - cannot kong", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []string{TileBamboo1},
+			Hands:         [4]Hand{{Revealed: [][]string{{TileBamboo1, TileBamboo1, TileBamboo1}}}},
+		}
+		err := round.Kong(DirectionEast, TileBamboo1)
+		assert.EqualError(t, err, "not allowed")
+	})
+	t.Run("tiles concealed, tile from discards - exposed kong", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileWindsWest, TileWindsEast},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []string{TileDragonsRed, TileBamboo1},
+			Hands:         [4]Hand{{Concealed: []string{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}}},
+		}
+		err := round.Kong(DirectionEast, TileBamboo1)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileDragonsRed}, round.Discards)
+		assert.Equal(t, []string{TileWindsWest}, round.Wall)
+		assert.Equal(t, []string{TileCharacters1, TileWindsWest, TileWindsEast}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, [][]string{{TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1}}, round.Hands[DirectionEast].Revealed)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+	t.Run("tiles exposed, tile from hand - exposed kong", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileWindsWest, TileWindsEast},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []string{TileDragonsRed},
+			Hands: [4]Hand{
+				{
+					Revealed:  [][]string{{TileBamboo1, TileBamboo1, TileBamboo1}},
+					Concealed: []string{TileCharacters1, TileBamboo1, TileWindsWest}},
+			},
+		}
+		err := round.Kong(DirectionEast, TileBamboo1)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileDragonsRed}, round.Discards)
+		assert.Equal(t, []string{TileWindsWest}, round.Wall)
+		assert.Equal(t, []string{TileCharacters1, TileWindsWest, TileWindsEast}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, [][]string{{TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1}}, round.Hands[DirectionEast].Revealed)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+	t.Run("tiles exposed, tile from hand - exposed kong", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileWindsWest, TileWindsEast},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []string{TileDragonsRed},
+			Hands: [4]Hand{
+				{
+					Revealed:  [][]string{{TileBamboo1, TileBamboo1, TileBamboo1}},
+					Concealed: []string{TileCharacters1, TileBamboo1, TileWindsWest}},
+			},
+		}
+		err := round.Kong(DirectionEast, TileBamboo1)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileDragonsRed}, round.Discards)
+		assert.Equal(t, []string{TileWindsWest}, round.Wall)
+		assert.Equal(t, []string{TileCharacters1, TileWindsWest, TileWindsEast}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, [][]string{{TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1}}, round.Hands[DirectionEast].Revealed)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+	t.Run("tiles concealed, tile from hand - hidden kong", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileWindsWest, TileWindsEast},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []string{TileDragonsRed},
+			Hands: [4]Hand{
+				{
+					Concealed: []string{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}},
+			},
+		}
+		err := round.Kong(DirectionEast, TileBamboo1)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileDragonsRed}, round.Discards)
+		assert.Equal(t, []string{TileWindsWest}, round.Wall)
+		assert.Equal(t, []string{TileCharacters1, TileWindsWest, TileWindsEast}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, [][]string{{TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1}}, round.Hands[DirectionEast].Revealed)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, ActionDiscard, round.CurrentAction)
+	})
+	t.Run("drawing flower after kong", func(t *testing.T) {
+		round := &Round{
+			Wall:          []string{TileWindsWest, TileWindsEast, TileCat},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []string{TileDragonsRed},
+			Hands: [4]Hand{
+				{
+					Concealed: []string{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}},
+			},
+		}
+		err := round.Kong(DirectionEast, TileBamboo1)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{TileDragonsRed}, round.Discards)
+		assert.Equal(t, []string{TileWindsWest}, round.Wall)
+		assert.Equal(t, []string{TileCat}, round.Hands[DirectionEast].Flowers)
+		assert.Equal(t, []string{TileCharacters1, TileWindsWest, TileWindsEast}, round.Hands[DirectionEast].Concealed)
+	})
+}
