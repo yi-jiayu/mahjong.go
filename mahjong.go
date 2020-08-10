@@ -100,16 +100,16 @@ var validSequences = [][3]string{
 
 type Hand struct {
 	Flowers   []string
-	Revealed  []string
+	Revealed  [][]string
 	Concealed []string
 }
 
 func (h Hand) MarshalJSON() ([]byte, error) {
 	masked := make([]string, len(h.Concealed))
 	return json.Marshal(struct {
-		Flowers   []string `json:"flowers"`
-		Revealed  []string `json:"revealed"`
-		Concealed []string `json:"concealed"`
+		Flowers   []string   `json:"flowers"`
+		Revealed  [][]string `json:"revealed"`
+		Concealed []string   `json:"concealed"`
 	}{
 		Flowers:   h.Flowers,
 		Revealed:  h.Revealed,
@@ -188,22 +188,22 @@ func distributeTiles(wall []string, dealer int) ([4]Hand, []string) {
 	hands := [4]Hand{
 		{
 			Flowers:   []string{},
-			Revealed:  []string{},
+			Revealed:  [][]string{},
 			Concealed: []string{},
 		},
 		{
 			Flowers:   []string{},
-			Revealed:  []string{},
+			Revealed:  [][]string{},
 			Concealed: []string{},
 		},
 		{
 			Flowers:   []string{},
-			Revealed:  []string{},
+			Revealed:  [][]string{},
 			Concealed: []string{},
 		},
 		{
 			Flowers:   []string{},
-			Revealed:  []string{},
+			Revealed:  [][]string{},
 			Concealed: []string{},
 		},
 	}
@@ -317,7 +317,7 @@ func (r *Round) Chow(seat int, tile1, tile2 string) error {
 	}
 	r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile1)
 	r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile2)
-	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, seq[:]...)
+	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, seq[:])
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
 	return nil
@@ -348,7 +348,7 @@ func (r *Round) Peng(seat int, tile string) error {
 		return errors.New("not enough tiles")
 	}
 	r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 2)
-	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, tile, tile, tile)
+	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile})
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
 	r.CurrentTurn = seat
