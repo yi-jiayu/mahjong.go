@@ -137,7 +137,7 @@ func (r *Room) startRound() error {
 	if len(r.Players) < 4 {
 		return errors.New("not enough players")
 	}
-	r.Round = mahjong.NewRound(rand.Int63(), mahjong.DirectionEast)
+	r.Round = mahjong.NewRound(rand.Int63())
 	r.Phase = PhaseInProgress
 	return nil
 }

@@ -47,7 +47,7 @@ func Test_distributeTiles(t *testing.T) {
 			// rest of wall
 			"06兰", "07菊", "12冬", "29八索", "16四筒", "39九万", "13一筒", "24三索", "01猫", "27六索", "40东风", "41南风", "34四万", "24三索", "31一万", "31一万", "25四索", "13一筒", "26五索", "15三筒", "14二筒", "18六筒", "24三索", "11秋", "19七筒", "45青发", "41南风", "44红中", "39九万", "27六索", "26五索", "10夏", "15三筒", "21九筒", "36六万", "41南风", "33三万", "29八索", "23二索", "28七索", "04蜈蚣", "32二万", "38八万", "29八索", "05梅", "39九万", "21九筒", "46白板", "33三万", "09春", "32二万", "25四索", "30九索", "39九万", "23二索", "02老鼠", "24三索", "44红中", "28七索", "45青发", "18六筒", "31一万", "14二筒", "43北风", "13一筒", "45青发", "30九索", "18六筒", "22一索", "31一万", "16四筒", "17五筒", "26五索", "23二索", "21九筒", "35五万", "42西风", "03公鸡", "35五万", "18六筒", "30九索", "46白板", "38八万", "40东风", "19七筒", "15三筒", "41南风", "33三万", "16四筒", "20八筒", "23二索", "08竹", "33三万", "19七筒", "44红中",
 		}
-		hands, wall := distributeTiles(wall, DirectionEast)
+		hands, wall := distributeTiles(wall)
 		assert.Equal(t,
 			[]Tile{"38八万", "35五万", "27六索", "44红中", "38八万", "36六万", "16四筒", "43北风", "29八索", "36六万", "34四万", "46白板", "34四万", "22一索"},
 			hands[DirectionEast].Concealed)
@@ -93,7 +93,7 @@ func Test_distributeTiles(t *testing.T) {
 			"33三万",         // north replaces one tile
 			"19七筒", "44红中", // west replaces two tiles
 		}
-		hands, wall := distributeTiles(wall, DirectionEast)
+		hands, wall := distributeTiles(wall)
 		assert.Equal(t,
 			[]Tile{"38八万", "35五万", "27六索", "44红中", "38八万", "36六万", "16四筒", "43北风", "29八索", "36六万", "34四万", "46白板", "34四万", "22一索"},
 			hands[DirectionEast].Concealed)
@@ -154,7 +154,7 @@ func Test_distributeTiles(t *testing.T) {
 			"33三万",        // north replaces one tile
 			"19七筒", "01猫", // west replaces two tiles and gets a third flower
 		}
-		hands, wall := distributeTiles(wall, DirectionEast)
+		hands, wall := distributeTiles(wall)
 		assert.Equal(t,
 			[]Tile{"38八万", "35五万", "27六索", "44红中", "38八万", "36六万", "16四筒", "43北风", "29八索", "36六万", "34四万", "46白板", "34四万", "22一索"},
 			hands[DirectionEast].Concealed)

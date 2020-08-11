@@ -204,7 +204,7 @@ func isFlower(tile Tile) bool {
 	return contains(FlowerTiles, tile)
 }
 
-func distributeTiles(wall []Tile, dealer Direction) ([4]Hand, []Tile) {
+func distributeTiles(wall []Tile) ([4]Hand, []Tile) {
 	hands := [4]Hand{
 		{
 			Flowers:   []Tile{},
@@ -227,7 +227,7 @@ func distributeTiles(wall []Tile, dealer Direction) ([4]Hand, []Tile) {
 			Concealed: []Tile{},
 		},
 	}
-	order := []Direction{dealer, (dealer + 1) % 4, (dealer + 2) % 4, (dealer + 3) % 4}
+	order := []Direction{DirectionEast, DirectionSouth, DirectionWest, DirectionNorth}
 	// draw 4 tiles 3 times
 	for i := 0; i < 3; i++ {
 		var draws []Tile
@@ -244,7 +244,7 @@ func distributeTiles(wall []Tile, dealer Direction) ([4]Hand, []Tile) {
 	}
 	// dealer draws one extra tile
 	draw, wall = drawFront(wall)
-	hands[dealer].Concealed = append(hands[dealer].Concealed, draw)
+	hands[DirectionEast].Concealed = append(hands[DirectionEast].Concealed, draw)
 	// replace flowers
 	replacementOrder := order
 	for len(replacementOrder) > 0 {
@@ -450,15 +450,15 @@ func (r *Round) Kong(seat Direction, tile Tile) error {
 	return errors.New("not allowed")
 }
 
-func NewRound(seed int64, dealer Direction) *Round {
+func NewRound(seed int64) *Round {
 	r := rand.New(rand.NewSource(seed))
 	wall := newWall(r)
-	hands, wall := distributeTiles(wall, dealer)
+	hands, wall := distributeTiles(wall)
 	return &Round{
 		Discards:      []Tile{},
 		Wall:          wall,
 		Hands:         hands,
-		CurrentTurn:   dealer,
+		CurrentTurn:   DirectionEast,
 		CurrentAction: ActionDiscard,
 	}
 }

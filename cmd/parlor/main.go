@@ -196,7 +196,7 @@ func main() {
 				c.String(http.StatusBadRequest, "not in progress")
 				return
 			}
-			room.Round = mahjong.NewRound(rand.Int63(), mahjong.DirectionEast)
+			room.Round = mahjong.NewRound(rand.Int63())
 			room.broadcast()
 		})
 		r.GET("/debug/rooms/:id/wall", func(c *gin.Context) {
