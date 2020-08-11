@@ -333,7 +333,7 @@ func (r *Round) Chow(seat Direction, tile1, tile2 Tile) error {
 	if !contains(r.Hands[seat].Concealed, tile1) || !contains(r.Hands[seat].Concealed, tile2) {
 		return errors.New("no such tile")
 	}
-	seq := [3]Tile{tile1, tile2, r.Discards[len(r.Discards)-1]}
+	seq := [3]Tile{tile1, tile2, r.lastDiscard()}
 	if !validSequence(seq) {
 		return errors.New("invalid sequence")
 	}
@@ -424,7 +424,7 @@ func (r *Round) drawFlower(seat Direction) {
 }
 
 func (r *Round) Kong(seat Direction, tile Tile) error {
-	if seat != r.PreviousTurn() && countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
+	if r.CurrentAction == ActionDraw && seat != r.PreviousTurn() && countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
 		r.Discards = r.Discards[:len(r.Discards)-1]
 		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 3)
 		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile, tile})
@@ -446,6 +446,83 @@ func (r *Round) Kong(seat Direction, tile Tile) error {
 			r.drawFlower(seat)
 			return nil
 		}
+	}
+	return errors.New("not allowed")
+}
+
+func isChow(tiles []Tile) bool {
+	return len(tiles) == 3 && validSequence([3]Tile{tiles[0], tiles[1], tiles[2]})
+}
+
+func isPeng(tiles []Tile) bool {
+	return len(tiles) == 3 && tiles[0] == tiles[1] && tiles[1] == tiles[2]
+}
+
+func isKong(tiles []Tile) bool {
+	return len(tiles) == 4 && tiles[0] == tiles[1] && tiles[1] == tiles[2] && tiles[2] == tiles[3]
+}
+
+func isEyes(tiles []Tile) bool {
+	return len(tiles) == 2 && tiles[0] == tiles[1]
+}
+
+func checkWin(revealed [][]Tile, tiles []Tile, melds [][]Tile) bool {
+	availableTiles := map[Tile]int{}
+	for _, tile := range tiles {
+		availableTiles[tile]++
+	}
+	hasEyes := false
+	for _, meld := range melds {
+		// check meld is valid
+		switch {
+		case isChow(meld):
+		case isPeng(meld):
+		case isEyes(meld):
+			if hasEyes {
+				// should only have one set of eyes
+				return false
+			} else {
+				hasEyes = true
+			}
+		default:
+			return false
+		}
+		// check player actually has the tiles
+		for _, tile := range meld {
+			if count := availableTiles[tile]; count > 0 {
+				availableTiles[tile]--
+			} else {
+				return false
+			}
+		}
+	}
+	// length of revealed + melds should be 5 (4 sets of 3 + 1 set of eyes)
+	if len(revealed)+len(melds) != 5 {
+		return false
+	}
+	return true
+}
+
+func (r *Round) Win(seat Direction, melds [][]Tile) error {
+	if r.CurrentAction == ActionDraw && seat != r.PreviousTurn() {
+		if !checkWin(r.Hands[seat].Revealed, append(r.Hands[seat].Concealed, r.lastDiscard()), melds) {
+			return errors.New("not allowed")
+		}
+		r.Discards = r.Discards[:len(r.Discards)-1]
+		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, melds...)
+		r.Hands[seat].Concealed = []Tile{}
+		r.CurrentAction = ActionGameOver
+		r.CurrentTurn = seat
+		return nil
+	}
+	if seat == r.CurrentTurn && r.CurrentAction == ActionDiscard {
+		if !checkWin(r.Hands[seat].Revealed, r.Hands[seat].Concealed, melds) {
+			return errors.New("not allowed")
+		}
+		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, melds...)
+		r.Hands[seat].Concealed = []Tile{}
+		r.CurrentAction = ActionGameOver
+		return nil
 	}
 	return errors.New("not allowed")
 }

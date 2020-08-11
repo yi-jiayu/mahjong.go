@@ -489,3 +489,132 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, []Tile{TileCharacters1, TileWindsWest, TileWindsEast}, round.Hands[DirectionEast].Concealed)
 	})
 }
+
+func TestRound_Win(t *testing.T) {
+	t.Run("can't win from discards when there are no discards", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+		}
+		err := round.Win(DirectionEast, [][]Tile{{TileCharacters4, TileCharacters4}})
+		assert.Error(t, err)
+	})
+	t.Run("dan diao, win from discards", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []Tile{TileCharacters3, TileCharacters4},
+			Hands: [4]Hand{
+				{
+					Revealed: [][]Tile{
+						{TileBamboo3, TileBamboo4, TileBamboo5},
+						{TileDots5, TileDots6, TileDots7},
+						{TileWindsNorth, TileWindsNorth, TileWindsNorth},
+						{TileDragonsWhite, TileDragonsWhite, TileDragonsWhite},
+					},
+					Concealed: []Tile{TileCharacters4},
+				},
+			},
+		}
+		err := round.Win(DirectionEast, [][]Tile{{TileCharacters4, TileCharacters4}})
+		assert.NoError(t, err)
+		assert.Equal(t, []Tile{TileCharacters3}, round.Discards)
+		assert.Equal(t, ActionGameOver, round.CurrentAction)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, [][]Tile{
+			{TileBamboo3, TileBamboo4, TileBamboo5},
+			{TileDots5, TileDots6, TileDots7},
+			{TileWindsNorth, TileWindsNorth, TileWindsNorth},
+			{TileDragonsWhite, TileDragonsWhite, TileDragonsWhite},
+			{TileCharacters4, TileCharacters4},
+		}, round.Hands[DirectionEast].Revealed)
+		assert.Empty(t, round.Hands[DirectionEast].Concealed)
+	})
+	t.Run("invalid melds", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []Tile{TileCharacters4},
+			Hands: [4]Hand{
+				{
+					Revealed: [][]Tile{
+						{TileBamboo3, TileBamboo4, TileBamboo5},
+						{TileDots5, TileDots6, TileDots7},
+						{TileWindsNorth, TileWindsNorth, TileWindsNorth},
+					},
+					Concealed: []Tile{TileCharacters4, TileDragonsRed, TileDragonsWhite, TileDragonsWhite},
+				},
+			},
+		}
+		err := round.Win(DirectionEast, [][]Tile{{TileCharacters4, TileCharacters4}, {TileDragonsRed, TileDragonsWhite, TileDragonsWhite}})
+		assert.Error(t, err)
+	})
+	t.Run("not enough tiles", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []Tile{TileCharacters4},
+			Hands: [4]Hand{
+				{
+					Revealed: [][]Tile{
+						{TileBamboo3, TileBamboo4, TileBamboo5},
+						{TileDots5, TileDots6, TileDots7},
+						{TileWindsNorth, TileWindsNorth, TileWindsNorth},
+					},
+					Concealed: []Tile{TileCharacters4, TileDragonsWhite, TileDragonsWhite},
+				},
+			},
+		}
+		err := round.Win(DirectionEast, [][]Tile{{TileCharacters4, TileCharacters4}, {TileDragonsWhite, TileDragonsWhite, TileDragonsWhite}})
+		assert.Error(t, err)
+
+	})
+	t.Run("not enough melds", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDraw,
+			Discards:      []Tile{TileCharacters4},
+			Hands: [4]Hand{
+				{
+					Revealed: [][]Tile{
+						{TileBamboo3, TileBamboo4, TileBamboo5},
+						{TileDots5, TileDots6, TileDots7},
+						{TileWindsNorth, TileWindsNorth, TileWindsNorth},
+					},
+					Concealed: []Tile{TileCharacters4, TileDragonsRed, TileDragonsWhite, TileDragonsWhite, TileDragonsWhite},
+				},
+			},
+		}
+		err := round.Win(DirectionEast, [][]Tile{{TileCharacters4, TileCharacters4}})
+		assert.Error(t, err)
+	})
+	t.Run("dan diao zi mo", func(t *testing.T) {
+		round := &Round{
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDiscard,
+			Hands: [4]Hand{
+				{
+					Revealed: [][]Tile{
+						{TileBamboo3, TileBamboo4, TileBamboo5},
+						{TileDots5, TileDots6, TileDots7},
+						{TileWindsNorth, TileWindsNorth, TileWindsNorth},
+						{TileDragonsWhite, TileDragonsWhite, TileDragonsWhite},
+					},
+					Concealed: []Tile{TileCharacters4, TileCharacters4},
+				},
+			},
+		}
+		err := round.Win(DirectionEast, [][]Tile{{TileCharacters4, TileCharacters4}})
+		assert.NoError(t, err)
+		assert.Equal(t, ActionGameOver, round.CurrentAction)
+		assert.Equal(t, DirectionEast, round.CurrentTurn)
+		assert.Equal(t, [][]Tile{
+			{TileBamboo3, TileBamboo4, TileBamboo5},
+			{TileDots5, TileDots6, TileDots7},
+			{TileWindsNorth, TileWindsNorth, TileWindsNorth},
+			{TileDragonsWhite, TileDragonsWhite, TileDragonsWhite},
+			{TileCharacters4, TileCharacters4},
+		}, round.Hands[DirectionEast].Revealed)
+		assert.Empty(t, round.Hands[DirectionEast].Concealed)
+	})
+}
