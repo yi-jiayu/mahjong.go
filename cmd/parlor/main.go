@@ -106,17 +106,17 @@ func main() {
 		ch := make(chan string)
 
 		// Signal the broker that we have a new connection
-		go room.addClient(ch)
+		go room.AddClient(ch)
 
 		// Remove this client from the map of connected clients
 		// when this handler exits.
-		defer room.removeClient(ch)
+		defer room.RemoveClient(ch)
 
 		// Listen to connection close and un-register c
 		notify := c.Request.Context().Done()
 		go func() {
 			<-notify
-			room.removeClient(ch)
+			room.RemoveClient(ch)
 		}()
 
 		for {
@@ -138,7 +138,6 @@ func main() {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		room.broadcast()
 	})
 	r.POST("/rooms/:id/actions", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
@@ -157,7 +156,6 @@ func main() {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		room.broadcast()
 	})
 	r.GET("/rooms/:id/self", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))

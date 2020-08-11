@@ -92,7 +92,7 @@ func NewRoom(host string) *Room {
 	}
 }
 
-func (r *Room) addClient(c chan string) {
+func (r *Room) AddClient(c chan string) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -114,10 +114,11 @@ func (r *Room) AddPlayer(id string) error {
 		}
 	}
 	r.Players = append(r.Players, id)
+	r.broadcast()
 	return nil
 }
 
-func (r *Room) removeClient(c chan string) {
+func (r *Room) RemoveClient(c chan string) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -125,9 +126,6 @@ func (r *Room) removeClient(c chan string) {
 }
 
 func (r *Room) broadcast() {
-	r.Lock()
-	defer r.Unlock()
-
 	var b bytes.Buffer
 	json.NewEncoder(&b).Encode(r)
 	for c := range r.clients {
@@ -141,7 +139,6 @@ func (r *Room) startRound() error {
 	}
 	r.Round = mahjong.NewRound(rand.Int63(), mahjong.DirectionEast)
 	r.Phase = PhaseInProgress
-	r.Nonce++
 	return nil
 }
 
@@ -151,9 +148,7 @@ type Action struct {
 	Tiles []mahjong.Tile `json:"tiles"`
 }
 
-func (r *Room) HandleAction(playerID string, action Action) error {
-	r.Lock()
-	defer r.Unlock()
+func (r *Room) handleAction(playerID string, action Action) error {
 	seat := -1
 	for i, p := range r.Players {
 		if p == playerID {
@@ -195,4 +190,16 @@ func (r *Room) HandleAction(playerID string, action Action) error {
 	default:
 		return errors.New("invalid action")
 	}
+}
+
+func (r *Room) HandleAction(playerID string, action Action) error {
+	r.Lock()
+	defer r.Unlock()
+	err := r.handleAction(playerID, action)
+	if err != nil {
+		return err
+	}
+	r.Nonce++
+	r.broadcast()
+	return nil
 }
