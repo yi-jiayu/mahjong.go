@@ -56,8 +56,10 @@ const (
 	TileDragonsWhite = "46白板"
 )
 
+type Direction int
+
 const (
-	DirectionEast = iota
+	DirectionEast Direction = iota
 	DirectionSouth
 	DirectionWest
 	DirectionNorth
@@ -121,17 +123,17 @@ type Round struct {
 	Wall          []string
 	Discards      []string
 	Hands         [4]Hand
-	CurrentTurn   int
+	CurrentTurn   Direction
 	CurrentAction string
 }
 
 func (r *Round) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		DrawsLeft     int      `json:"draws_left"`
-		Discards      []string `json:"discards"`
-		Hands         [4]Hand  `json:"hands"`
-		CurrentTurn   int      `json:"current_turn"`
-		CurrentAction string   `json:"current_action"`
+		DrawsLeft     int       `json:"draws_left"`
+		Discards      []string  `json:"discards"`
+		Hands         [4]Hand   `json:"hands"`
+		CurrentTurn   Direction `json:"current_turn"`
+		CurrentAction string    `json:"current_action"`
 	}{
 		DrawsLeft:     len(r.Wall),
 		Discards:      r.Discards,
@@ -184,7 +186,7 @@ func isFlower(tile string) bool {
 	return contains(FlowerTiles, tile)
 }
 
-func distributeTiles(wall []string, dealer int) ([4]Hand, []string) {
+func distributeTiles(wall []string, dealer Direction) ([4]Hand, []string) {
 	hands := [4]Hand{
 		{
 			Flowers:   []string{},
@@ -207,7 +209,7 @@ func distributeTiles(wall []string, dealer int) ([4]Hand, []string) {
 			Concealed: []string{},
 		},
 	}
-	order := []int{dealer, (dealer + 1) % 4, (dealer + 2) % 4, (dealer + 3) % 4}
+	order := []Direction{dealer, (dealer + 1) % 4, (dealer + 2) % 4, (dealer + 3) % 4}
 	// draw 4 tiles 3 times
 	for i := 0; i < 3; i++ {
 		var draws []string
@@ -273,7 +275,7 @@ func removeTile(tiles []string, tile string) ([]string, bool) {
 	return tiles, removedCount > 0
 }
 
-func (r *Round) Discard(seat int, tile string) error {
+func (r *Round) Discard(seat Direction, tile string) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
 	}
@@ -301,7 +303,7 @@ func validSequence(seq [3]string) bool {
 	return false
 }
 
-func (r *Round) Chow(seat int, tile1, tile2 string) error {
+func (r *Round) Chow(seat Direction, tile1, tile2 string) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
 	}
@@ -323,7 +325,7 @@ func (r *Round) Chow(seat int, tile1, tile2 string) error {
 	return nil
 }
 
-func (r *Round) PreviousTurn() int {
+func (r *Round) PreviousTurn() Direction {
 	return (r.CurrentTurn + 3) % 4
 }
 
@@ -337,7 +339,7 @@ func countTiles(tiles []string, tile string) int {
 	return count
 }
 
-func (r *Round) Peng(seat int, tile string) error {
+func (r *Round) Peng(seat Direction, tile string) error {
 	if seat == r.PreviousTurn() {
 		return errors.New("wrong turn")
 	}
@@ -355,7 +357,7 @@ func (r *Round) Peng(seat int, tile string) error {
 	return nil
 }
 
-func (r *Round) Draw(seat int) error {
+func (r *Round) Draw(seat Direction) error {
 	if r.CurrentTurn != seat {
 		return errors.New("wrong turn")
 	}
@@ -389,7 +391,7 @@ func (r *Round) lastDiscard() string {
 	return ""
 }
 
-func (r *Round) drawFlower(seat int) {
+func (r *Round) drawFlower(seat Direction) {
 	for {
 		var draw string
 		draw, r.Wall = drawBack(r.Wall)
@@ -401,7 +403,7 @@ func (r *Round) drawFlower(seat int) {
 	}
 }
 
-func (r *Round) Kong(seat int, tile string) error {
+func (r *Round) Kong(seat Direction, tile string) error {
 	if seat != r.PreviousTurn() && countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
 		r.Discards = r.Discards[:len(r.Discards)-1]
 		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 3)
@@ -428,7 +430,7 @@ func (r *Round) Kong(seat int, tile string) error {
 	return errors.New("not allowed")
 }
 
-func NewRound(seed int64, dealer int) *Round {
+func NewRound(seed int64, dealer Direction) *Round {
 	r := rand.New(rand.NewSource(seed))
 	wall := newWall(r)
 	hands, wall := distributeTiles(wall, dealer)
