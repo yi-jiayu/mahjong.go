@@ -67,10 +67,12 @@ const (
 	DirectionNorth
 )
 
+type Action string
+
 const (
-	ActionDraw     = "draw"
-	ActionDiscard  = "discard"
-	ActionGameOver = "game over"
+	ActionDraw     Action = "draw"
+	ActionDiscard  Action = "discard"
+	ActionGameOver Action = "game over"
 )
 
 var (
@@ -126,7 +128,7 @@ type Round struct {
 	Discards      []Tile
 	Hands         [4]Hand
 	CurrentTurn   Direction
-	CurrentAction string
+	CurrentAction Action
 }
 
 type MeldType int
@@ -149,7 +151,7 @@ func (r *Round) MarshalJSON() ([]byte, error) {
 		Discards      []Tile    `json:"discards"`
 		Hands         [4]Hand   `json:"hands"`
 		CurrentTurn   Direction `json:"current_turn"`
-		CurrentAction string    `json:"current_action"`
+		CurrentAction Action    `json:"current_action"`
 	}{
 		DrawsLeft:     len(r.Wall),
 		Discards:      r.Discards,
