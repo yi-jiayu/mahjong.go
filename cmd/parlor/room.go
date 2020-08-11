@@ -146,9 +146,9 @@ func (r *Room) startRound() error {
 }
 
 type Action struct {
-	Nonce int      `json:"nonce"`
-	Type  string   `json:"type"`
-	Tiles []string `json:"tiles"`
+	Nonce int            `json:"nonce"`
+	Type  string         `json:"type"`
+	Tiles []mahjong.Tile `json:"tiles"`
 }
 
 func (r *Room) HandleAction(playerID string, action Action) error {

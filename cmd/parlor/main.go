@@ -172,7 +172,7 @@ func main() {
 		}
 		playerID := c.MustGet("id").(string)
 		var seat int
-		var concealed []string
+		var concealed []mahjong.Tile
 		for i, id := range room.Players {
 			if id == playerID {
 				seat = i
@@ -230,7 +230,7 @@ func main() {
 				c.String(http.StatusBadRequest, "tile not provided")
 				return
 			}
-			room.Round.Wall = append([]string{tile}, room.Round.Wall...)
+			room.Round.Wall = append([]mahjong.Tile{mahjong.Tile(tile)}, room.Round.Wall...)
 			room.broadcast()
 		})
 	}

@@ -7,53 +7,55 @@ import (
 	"sort"
 )
 
+type Tile string
+
 const (
-	TileCat          = "01猫"
-	TileRat          = "02老鼠"
-	TileRooster      = "03公鸡"
-	TileCentipede    = "04蜈蚣"
-	TileGentlemen1   = "05梅"
-	TileGentlemen2   = "06兰"
-	TileGentlemen3   = "07菊"
-	TileGentlemen4   = "08竹"
-	TileSeasons1     = "09春"
-	TileSeasons2     = "10夏"
-	TileSeasons3     = "11秋"
-	TileSeasons4     = "12冬"
-	TileDots1        = "13一筒"
-	TileDots2        = "14二筒"
-	TileDots3        = "15三筒"
-	TileDots4        = "16四筒"
-	TileDots5        = "17五筒"
-	TileDots6        = "18六筒"
-	TileDots7        = "19七筒"
-	TileDots8        = "20八筒"
-	TileDots9        = "21九筒"
-	TileBamboo1      = "22一索"
-	TileBamboo2      = "23二索"
-	TileBamboo3      = "24三索"
-	TileBamboo4      = "25四索"
-	TileBamboo5      = "26五索"
-	TileBamboo6      = "27六索"
-	TileBamboo7      = "28七索"
-	TileBamboo8      = "29八索"
-	TileBamboo9      = "30九索"
-	TileCharacters1  = "31一万"
-	TileCharacters2  = "32二万"
-	TileCharacters3  = "33三万"
-	TileCharacters4  = "34四万"
-	TileCharacters5  = "35五万"
-	TileCharacters6  = "36六万"
-	TileCharacters7  = "37七万"
-	TileCharacters8  = "38八万"
-	TileCharacters9  = "39九万"
-	TileWindsEast    = "40东风"
-	TileWindsSouth   = "41南风"
-	TileWindsWest    = "42西风"
-	TileWindsNorth   = "43北风"
-	TileDragonsRed   = "44红中"
-	TileDragonsGreen = "45青发"
-	TileDragonsWhite = "46白板"
+	TileCat          Tile = "01猫"
+	TileRat          Tile = "02老鼠"
+	TileRooster      Tile = "03公鸡"
+	TileCentipede    Tile = "04蜈蚣"
+	TileGentlemen1   Tile = "05梅"
+	TileGentlemen2   Tile = "06兰"
+	TileGentlemen3   Tile = "07菊"
+	TileGentlemen4   Tile = "08竹"
+	TileSeasons1     Tile = "09春"
+	TileSeasons2     Tile = "10夏"
+	TileSeasons3     Tile = "11秋"
+	TileSeasons4     Tile = "12冬"
+	TileDots1        Tile = "13一筒"
+	TileDots2        Tile = "14二筒"
+	TileDots3        Tile = "15三筒"
+	TileDots4        Tile = "16四筒"
+	TileDots5        Tile = "17五筒"
+	TileDots6        Tile = "18六筒"
+	TileDots7        Tile = "19七筒"
+	TileDots8        Tile = "20八筒"
+	TileDots9        Tile = "21九筒"
+	TileBamboo1      Tile = "22一索"
+	TileBamboo2      Tile = "23二索"
+	TileBamboo3      Tile = "24三索"
+	TileBamboo4      Tile = "25四索"
+	TileBamboo5      Tile = "26五索"
+	TileBamboo6      Tile = "27六索"
+	TileBamboo7      Tile = "28七索"
+	TileBamboo8      Tile = "29八索"
+	TileBamboo9      Tile = "30九索"
+	TileCharacters1  Tile = "31一万"
+	TileCharacters2  Tile = "32二万"
+	TileCharacters3  Tile = "33三万"
+	TileCharacters4  Tile = "34四万"
+	TileCharacters5  Tile = "35五万"
+	TileCharacters6  Tile = "36六万"
+	TileCharacters7  Tile = "37七万"
+	TileCharacters8  Tile = "38八万"
+	TileCharacters9  Tile = "39九万"
+	TileWindsEast    Tile = "40东风"
+	TileWindsSouth   Tile = "41南风"
+	TileWindsWest    Tile = "42西风"
+	TileWindsNorth   Tile = "43北风"
+	TileDragonsRed   Tile = "44红中"
+	TileDragonsGreen Tile = "45青发"
+	TileDragonsWhite Tile = "46白板"
 )
 
 type Direction int
@@ -72,11 +74,11 @@ const (
 )
 
 var (
-	FlowerTiles = []string{"01猫", "02老鼠", "03公鸡", "04蜈蚣", "05梅", "06兰", "07菊", "08竹", "09春", "10夏", "11秋", "12冬"}
-	NormalTiles = []string{"13一筒", "14二筒", "15三筒", "16四筒", "17五筒", "18六筒", "19七筒", "20八筒", "21九筒", "22一索", "23二索", "24三索", "25四索", "26五索", "27六索", "28七索", "29八索", "30九索", "31一万", "32二万", "33三万", "34四万", "35五万", "36六万", "37七万", "38八万", "39九万", "40东风", "41南风", "42西风", "43北风", "44红中", "45青发", "46白板"}
+	FlowerTiles = []Tile{"01猫", "02老鼠", "03公鸡", "04蜈蚣", "05梅", "06兰", "07菊", "08竹", "09春", "10夏", "11秋", "12冬"}
+	NormalTiles = []Tile{"13一筒", "14二筒", "15三筒", "16四筒", "17五筒", "18六筒", "19七筒", "20八筒", "21九筒", "22一索", "23二索", "24三索", "25四索", "26五索", "27六索", "28七索", "29八索", "30九索", "31一万", "32二万", "33三万", "34四万", "35五万", "36六万", "37七万", "38八万", "39九万", "40东风", "41南风", "42西风", "43北风", "44红中", "45青发", "46白板"}
 )
 
-var validSequences = [][3]string{
+var validSequences = [][3]Tile{
 	{TileBamboo1, TileBamboo2, TileBamboo3},
 	{TileBamboo2, TileBamboo3, TileBamboo4},
 	{TileBamboo3, TileBamboo4, TileBamboo5},
@@ -101,17 +103,17 @@ var validSequences = [][3]string{
 }
 
 type Hand struct {
-	Flowers   []string
-	Revealed  [][]string
-	Concealed []string
+	Flowers   []Tile
+	Revealed  [][]Tile
+	Concealed []Tile
 }
 
 func (h Hand) MarshalJSON() ([]byte, error) {
-	masked := make([]string, len(h.Concealed))
+	masked := make([]Tile, len(h.Concealed))
 	return json.Marshal(struct {
-		Flowers   []string   `json:"flowers"`
-		Revealed  [][]string `json:"revealed"`
-		Concealed []string   `json:"concealed"`
+		Flowers   []Tile   `json:"flowers"`
+		Revealed  [][]Tile `json:"revealed"`
+		Concealed []Tile   `json:"concealed"`
 	}{
 		Flowers:   h.Flowers,
 		Revealed:  h.Revealed,
@@ -120,17 +122,31 @@ func (h Hand) MarshalJSON() ([]byte, error) {
 }
 
 type Round struct {
-	Wall          []string
-	Discards      []string
+	Wall          []Tile
+	Discards      []Tile
 	Hands         [4]Hand
 	CurrentTurn   Direction
 	CurrentAction string
 }
 
+type MeldType int
+
+const (
+	MeldChow MeldType = iota
+	MeldPeng
+	MeldKong
+	MeldEyes
+)
+
+type Meld struct {
+	Type  MeldType
+	Tiles []Tile
+}
+
 func (r *Round) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		DrawsLeft     int       `json:"draws_left"`
-		Discards      []string  `json:"discards"`
+		Discards      []Tile    `json:"discards"`
 		Hands         [4]Hand   `json:"hands"`
 		CurrentTurn   Direction `json:"current_turn"`
 		CurrentAction string    `json:"current_action"`
@@ -143,8 +159,8 @@ func (r *Round) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func newWall(r *rand.Rand) []string {
-	var wall []string
+func newWall(r *rand.Rand) []Tile {
+	var wall []Tile
 	wall = append(wall, FlowerTiles...)
 	for _, tile := range NormalTiles {
 		wall = append(wall, tile, tile, tile, tile)
@@ -155,25 +171,25 @@ func newWall(r *rand.Rand) []string {
 	return wall
 }
 
-func drawFront(wall []string) (string, []string) {
+func drawFront(wall []Tile) (Tile, []Tile) {
 	drawn := wall[0]
 	wall = wall[1:]
 	return drawn, wall
 }
 
-func drawFrontN(wall []string, n int) ([]string, []string) {
+func drawFrontN(wall []Tile, n int) ([]Tile, []Tile) {
 	drawn := wall[:n]
 	wall = wall[n:]
 	return drawn, wall
 }
 
-func drawBack(wall []string) (string, []string) {
+func drawBack(wall []Tile) (Tile, []Tile) {
 	drawn := wall[len(wall)-1]
 	wall = wall[:len(wall)-1]
 	return drawn, wall
 }
 
-func contains(tiles []string, tile string) bool {
+func contains(tiles []Tile, tile Tile) bool {
 	for _, t := range tiles {
 		if t == tile {
 			return true
@@ -182,44 +198,44 @@ func contains(tiles []string, tile string) bool {
 	return false
 }
 
-func isFlower(tile string) bool {
+func isFlower(tile Tile) bool {
 	return contains(FlowerTiles, tile)
 }
 
-func distributeTiles(wall []string, dealer Direction) ([4]Hand, []string) {
+func distributeTiles(wall []Tile, dealer Direction) ([4]Hand, []Tile) {
 	hands := [4]Hand{
 		{
-			Flowers:   []string{},
-			Revealed:  [][]string{},
-			Concealed: []string{},
+			Flowers:   []Tile{},
+			Revealed:  [][]Tile{},
+			Concealed: []Tile{},
 		},
 		{
-			Flowers:   []string{},
-			Revealed:  [][]string{},
-			Concealed: []string{},
+			Flowers:   []Tile{},
+			Revealed:  [][]Tile{},
+			Concealed: []Tile{},
 		},
 		{
-			Flowers:   []string{},
-			Revealed:  [][]string{},
-			Concealed: []string{},
+			Flowers:   []Tile{},
+			Revealed:  [][]Tile{},
+			Concealed: []Tile{},
 		},
 		{
-			Flowers:   []string{},
-			Revealed:  [][]string{},
-			Concealed: []string{},
+			Flowers:   []Tile{},
+			Revealed:  [][]Tile{},
+			Concealed: []Tile{},
 		},
 	}
 	order := []Direction{dealer, (dealer + 1) % 4, (dealer + 2) % 4, (dealer + 3) % 4}
 	// draw 4 tiles 3 times
 	for i := 0; i < 3; i++ {
-		var draws []string
+		var draws []Tile
 		for _, seat := range order {
 			draws, wall = drawFrontN(wall, 4)
 			hands[seat].Concealed = append(hands[seat].Concealed, draws...)
 		}
 	}
 	// draw one tile
-	var draw string
+	var draw Tile
 	for _, seat := range order {
 		draw, wall = drawFront(wall)
 		hands[seat].Concealed = append(hands[seat].Concealed, draw)
@@ -255,7 +271,7 @@ func distributeTiles(wall []string, dealer Direction) ([4]Hand, []string) {
 	return hands, wall
 }
 
-func removeTiles(tiles []string, tile string, count int) ([]string, int) {
+func removeTiles(tiles []Tile, tile Tile, count int) ([]Tile, int) {
 	i := 0
 	removedCount := 0
 	for _, t := range tiles {
@@ -270,12 +286,12 @@ func removeTiles(tiles []string, tile string, count int) ([]string, int) {
 	return tiles, removedCount
 }
 
-func removeTile(tiles []string, tile string) ([]string, bool) {
+func removeTile(tiles []Tile, tile Tile) ([]Tile, bool) {
 	tiles, removedCount := removeTiles(tiles, tile, 1)
 	return tiles, removedCount > 0
 }
 
-func (r *Round) Discard(seat Direction, tile string) error {
+func (r *Round) Discard(seat Direction, tile Tile) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
 	}
@@ -293,8 +309,10 @@ func (r *Round) Discard(seat Direction, tile string) error {
 	return nil
 }
 
-func validSequence(seq [3]string) bool {
-	sort.Strings(seq[:])
+func validSequence(seq [3]Tile) bool {
+	sort.Slice(seq[:], func(i, j int) bool {
+		return seq[i] < seq[j]
+	})
 	for _, valid := range validSequences {
 		if seq == valid {
 			return true
@@ -303,7 +321,7 @@ func validSequence(seq [3]string) bool {
 	return false
 }
 
-func (r *Round) Chow(seat Direction, tile1, tile2 string) error {
+func (r *Round) Chow(seat Direction, tile1, tile2 Tile) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
 	}
@@ -313,7 +331,7 @@ func (r *Round) Chow(seat Direction, tile1, tile2 string) error {
 	if !contains(r.Hands[seat].Concealed, tile1) || !contains(r.Hands[seat].Concealed, tile2) {
 		return errors.New("no such tile")
 	}
-	seq := [3]string{tile1, tile2, r.Discards[len(r.Discards)-1]}
+	seq := [3]Tile{tile1, tile2, r.Discards[len(r.Discards)-1]}
 	if !validSequence(seq) {
 		return errors.New("invalid sequence")
 	}
@@ -329,7 +347,7 @@ func (r *Round) PreviousTurn() Direction {
 	return (r.CurrentTurn + 3) % 4
 }
 
-func countTiles(tiles []string, tile string) int {
+func countTiles(tiles []Tile, tile Tile) int {
 	count := 0
 	for _, t := range tiles {
 		if t == tile {
@@ -339,7 +357,7 @@ func countTiles(tiles []string, tile string) int {
 	return count
 }
 
-func (r *Round) Peng(seat Direction, tile string) error {
+func (r *Round) Peng(seat Direction, tile Tile) error {
 	if seat == r.PreviousTurn() {
 		return errors.New("wrong turn")
 	}
@@ -350,7 +368,7 @@ func (r *Round) Peng(seat Direction, tile string) error {
 		return errors.New("not enough tiles")
 	}
 	r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 2)
-	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile})
+	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile})
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
 	r.CurrentTurn = seat
@@ -364,7 +382,7 @@ func (r *Round) Draw(seat Direction) error {
 	if r.CurrentAction != ActionDraw {
 		return errors.New("wrong action")
 	}
-	var draw string
+	var draw Tile
 	draw, r.Wall = drawFront(r.Wall)
 	for isFlower(draw) {
 		r.Hands[seat].Flowers = append(r.Hands[seat].Flowers, draw)
@@ -375,7 +393,7 @@ func (r *Round) Draw(seat Direction) error {
 	return nil
 }
 
-func indexOfPeng(revealed [][]string, tile string) int {
+func indexOfPeng(revealed [][]Tile, tile Tile) int {
 	for i, meld := range revealed {
 		if len(meld) == 3 && meld[0] == tile && meld[1] == tile && meld[2] == tile {
 			return i
@@ -384,7 +402,7 @@ func indexOfPeng(revealed [][]string, tile string) int {
 	return -1
 }
 
-func (r *Round) lastDiscard() string {
+func (r *Round) lastDiscard() Tile {
 	if len(r.Discards) > 0 {
 		return r.Discards[len(r.Discards)-1]
 	}
@@ -393,7 +411,7 @@ func (r *Round) lastDiscard() string {
 
 func (r *Round) drawFlower(seat Direction) {
 	for {
-		var draw string
+		var draw Tile
 		draw, r.Wall = drawBack(r.Wall)
 		if !isFlower(draw) {
 			r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
@@ -403,11 +421,11 @@ func (r *Round) drawFlower(seat Direction) {
 	}
 }
 
-func (r *Round) Kong(seat Direction, tile string) error {
+func (r *Round) Kong(seat Direction, tile Tile) error {
 	if seat != r.PreviousTurn() && countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
 		r.Discards = r.Discards[:len(r.Discards)-1]
 		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 3)
-		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile, tile})
+		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile, tile})
 		r.drawFlower(seat)
 		r.CurrentAction = ActionDiscard
 		r.CurrentTurn = seat
@@ -422,7 +440,7 @@ func (r *Round) Kong(seat Direction, tile string) error {
 		}
 		if countTiles(r.Hands[seat].Concealed, tile) == 4 {
 			r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 4)
-			r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []string{tile, tile, tile, tile})
+			r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile, tile})
 			r.drawFlower(seat)
 			return nil
 		}
@@ -435,7 +453,7 @@ func NewRound(seed int64, dealer Direction) *Round {
 	wall := newWall(r)
 	hands, wall := distributeTiles(wall, dealer)
 	return &Round{
-		Discards:      []string{},
+		Discards:      []Tile{},
 		Wall:          wall,
 		Hands:         hands,
 		CurrentTurn:   dealer,
