@@ -395,7 +395,7 @@ func (r *Round) Draw(seat Direction) (Tile, []Tile, error) {
 		return "", nil, errors.New("no draws left")
 	}
 	var draw Tile
-	var flowers []Tile
+	flowers := make([]Tile, 0)
 	draw, r.Wall = drawFront(r.Wall)
 	for isFlower(draw) {
 		flowers = append(flowers, draw)
@@ -452,7 +452,7 @@ func (r *Round) Kong(seat Direction, tile Tile) error {
 			r.drawFlower(seat)
 			return nil
 		}
-		if countTiles(r.Hands[seat].Concealed, tile) == 4 {
+		if countTiles(r.Hands[seat].Concealed, tile) > 4 {
 			r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 4)
 			r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile, tile})
 			r.drawFlower(seat)
