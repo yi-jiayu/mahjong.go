@@ -153,10 +153,12 @@ func main() {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		if err := room.HandleAction(playerID, action); err != nil {
+		result, err := room.HandleAction(playerID, action)
+		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
+		c.JSON(http.StatusOK, result)
 	})
 	r.GET("/rooms/:id/self", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))

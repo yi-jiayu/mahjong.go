@@ -150,7 +150,12 @@ type Action struct {
 	Melds [][]mahjong.Tile `json:"melds"`
 }
 
-func (r *Room) handleAction(playerID string, action Action) error {
+type DrawResult struct {
+	Drawn   mahjong.Tile   `json:"drawn"`
+	Flowers []mahjong.Tile `json:"flowers"`
+}
+
+func (r *Room) handleAction(playerID string, action Action) (interface{}, error) {
 	seat := -1
 	for i, p := range r.Players {
 		if p == playerID {
@@ -159,57 +164,66 @@ func (r *Room) handleAction(playerID string, action Action) error {
 		}
 	}
 	if seat == -1 {
-		return errors.New("player not in room")
+		return nil, errors.New("player not in room")
 	}
 	if action.Nonce != r.Nonce {
-		return errors.New("invalid nonce")
+		return nil, errors.New("invalid nonce")
 	}
 	switch action.Type {
 	case "start":
-		return r.startRound()
+		return nil, r.startRound()
 	case "discard":
 		if len(action.Tiles) < 0 {
-			return errors.New("not enough tiles")
+			return nil, errors.New("not enough tiles")
 		}
-		return r.Round.Discard(mahjong.Direction(seat), action.Tiles[0])
+		return nil, r.Round.Discard(mahjong.Direction(seat), action.Tiles[0])
 	case "draw":
-		_, _, err := r.Round.Draw(mahjong.Direction(seat))
-		return err
+		drawn, flowers, err := r.Round.Draw(mahjong.Direction(seat))
+		if err != nil {
+			return nil, err
+		}
+		return DrawResult{
+			Drawn:   drawn,
+			Flowers: flowers,
+		}, nil
 	case "chow":
 		if len(action.Tiles) < 2 {
-			return errors.New("not enough tiles")
+			return nil, errors.New("not enough tiles")
 		}
-		return r.Round.Chow(mahjong.Direction(seat), action.Tiles[0], action.Tiles[1])
+		return nil, r.Round.Chow(mahjong.Direction(seat), action.Tiles[0], action.Tiles[1])
 	case "peng":
 		if len(action.Tiles) < 1 {
-			return errors.New("not enough tiles")
+			return nil, errors.New("not enough tiles")
 		}
-		return r.Round.Peng(mahjong.Direction(seat), action.Tiles[0])
+		return nil, r.Round.Peng(mahjong.Direction(seat), action.Tiles[0])
 	case "kong":
 		if len(action.Tiles) < 1 {
-			return errors.New("not enough tiles")
+			return nil, errors.New("not enough tiles")
 		}
-		return r.Round.Kong(mahjong.Direction(seat), action.Tiles[0])
+		return nil, r.Round.Kong(mahjong.Direction(seat), action.Tiles[0])
 	case "hu":
 		err := r.Round.Win(mahjong.Direction(seat), action.Melds)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		r.Phase = PhaseRoundOver
-		return nil
+		return nil, nil
 	default:
-		return errors.New("invalid action")
+		return nil, errors.New("invalid action")
 	}
 }
 
-func (r *Room) HandleAction(playerID string, action Action) error {
+func (r *Room) HandleAction(playerID string, action Action) (interface{}, error) {
 	r.Lock()
 	defer r.Unlock()
-	err := r.handleAction(playerID, action)
+	result, err := r.handleAction(playerID, action)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if result == nil {
+		result = struct{}{}
 	}
 	r.Nonce++
 	r.broadcast()
-	return nil
+	return result, nil
 }
