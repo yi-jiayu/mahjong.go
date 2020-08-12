@@ -200,7 +200,14 @@ func (r *Room) handleAction(playerID string, action Action) (interface{}, error)
 		if len(action.Tiles) < 1 {
 			return nil, errors.New("not enough tiles")
 		}
-		return nil, r.Round.Kong(mahjong.Direction(seat), action.Tiles[0])
+		drawn, flowers, err := r.Round.Kong(mahjong.Direction(seat), action.Tiles[0])
+		if err != nil {
+			return nil, err
+		}
+		return DrawResult{
+			Drawn:   drawn,
+			Flowers: flowers,
+		}, nil
 	case "hu":
 		err := r.Round.Win(mahjong.Direction(seat), action.Melds)
 		if err != nil {
