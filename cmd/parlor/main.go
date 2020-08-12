@@ -51,6 +51,10 @@ func main() {
 	r.Use(sessions.Sessions("MJSESSIONID", store))
 	r.Use(func(c *gin.Context) {
 		session := sessions.Default(c)
+		session.Options(sessions.Options{
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+		})
 		if id := session.Get("id"); id != nil {
 			c.Set("id", id)
 		} else {
