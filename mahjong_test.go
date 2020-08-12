@@ -365,12 +365,12 @@ func TestRound_Peng(t *testing.T) {
 func TestRound_Draw(t *testing.T) {
 	t.Run("wrong turn", func(t *testing.T) {
 		round := &Round{CurrentTurn: DirectionEast}
-		err := round.Draw(DirectionSouth)
+		_, _, err := round.Draw(DirectionSouth)
 		assert.EqualError(t, err, "wrong turn")
 	})
 	t.Run("wrong action", func(t *testing.T) {
 		round := &Round{CurrentAction: ActionDiscard}
-		err := round.Draw(DirectionEast)
+		_, _, err := round.Draw(DirectionEast)
 		assert.EqualError(t, err, "wrong action")
 	})
 	t.Run("cannot draw when less than MinTilesLeft tiles in wall", func(t *testing.T) {
@@ -384,7 +384,7 @@ func TestRound_Draw(t *testing.T) {
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
 		}
-		err := round.Draw(DirectionEast)
+		_, _, err := round.Draw(DirectionEast)
 		assert.EqualError(t, err, "no draws left")
 	})
 	t.Run("success", func(t *testing.T) {
@@ -400,8 +400,10 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		err := round.Draw(DirectionEast)
+		drawn, flowers, err := round.Draw(DirectionEast)
 		assert.NoError(t, err)
+		assert.Equal(t, TileBamboo1, drawn)
+		assert.Empty(t, flowers)
 		assert.Equal(t, []Tile{"38八万", "35五万", "27六索", "44红中",
 			"22一索", "34四万", "35五万", "20八筒",
 			"37七万", "13一筒", "43北风", "26五索",
@@ -420,8 +422,10 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		err := round.Draw(DirectionEast)
+		drawn, flowers, err := round.Draw(DirectionEast)
 		assert.NoError(t, err)
+		assert.Equal(t, TileBamboo2, drawn)
+		assert.Equal(t, []Tile{TileGentlemen1}, flowers)
 		assert.Equal(t, []Tile{"38八万", "35五万", "27六索", "44红中",
 			"22一索", "34四万", "35五万", "20八筒",
 			"37七万", "13一筒", "43北风", "26五索",
@@ -441,8 +445,10 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		err := round.Draw(DirectionEast)
+		drawn, flowers, err := round.Draw(DirectionEast)
 		assert.NoError(t, err)
+		assert.Equal(t, TileBamboo2, drawn)
+		assert.Equal(t, []Tile{TileGentlemen1, TileGentlemen2}, flowers)
 		assert.Equal(t, []Tile{"38八万", "35五万", "27六索", "44红中",
 			"22一索", "34四万", "35五万", "20八筒",
 			"37七万", "13一筒", "43北风", "26五索",

@@ -383,25 +383,28 @@ func (r *Round) Peng(seat Direction, tile Tile) error {
 	return nil
 }
 
-func (r *Round) Draw(seat Direction) error {
+// Draw draws a new tile for seat and returns the drawn tile and any flowers drawn in the process.
+func (r *Round) Draw(seat Direction) (Tile, []Tile, error) {
 	if r.CurrentTurn != seat {
-		return errors.New("wrong turn")
+		return "", nil, errors.New("wrong turn")
 	}
 	if r.CurrentAction != ActionDraw {
-		return errors.New("wrong action")
+		return "", nil, errors.New("wrong action")
 	}
 	if len(r.Wall) < MinTilesLeft {
-		return errors.New("no draws left")
+		return "", nil, errors.New("no draws left")
 	}
 	var draw Tile
+	var flowers []Tile
 	draw, r.Wall = drawFront(r.Wall)
 	for isFlower(draw) {
+		flowers = append(flowers, draw)
 		r.Hands[seat].Flowers = append(r.Hands[seat].Flowers, draw)
 		draw, r.Wall = drawBack(r.Wall)
 	}
 	r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
 	r.CurrentAction = ActionDiscard
-	return nil
+	return draw, flowers, nil
 }
 
 func indexOfPeng(revealed [][]Tile, tile Tile) int {

@@ -173,7 +173,8 @@ func (r *Room) handleAction(playerID string, action Action) error {
 		}
 		return r.Round.Discard(mahjong.Direction(seat), action.Tiles[0])
 	case "draw":
-		return r.Round.Draw(mahjong.Direction(seat))
+		_, _, err := r.Round.Draw(mahjong.Direction(seat))
+		return err
 	case "chow":
 		if len(action.Tiles) < 2 {
 			return errors.New("not enough tiles")
