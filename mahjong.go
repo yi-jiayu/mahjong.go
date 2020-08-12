@@ -303,6 +303,9 @@ func (r *Round) Discard(seat Direction, tile Tile) error {
 	if r.CurrentAction != ActionDiscard {
 		return errors.New("not time to discard")
 	}
+	if len(r.Wall) < MinTilesLeft {
+		return errors.New("cannot discard on last round")
+	}
 	remaining, ok := removeTile(r.Hands[seat].Concealed, tile)
 	if !ok {
 		return errors.New("no such tile")
@@ -386,6 +389,9 @@ func (r *Round) Draw(seat Direction) error {
 	}
 	if r.CurrentAction != ActionDraw {
 		return errors.New("wrong action")
+	}
+	if len(r.Wall) < MinTilesLeft {
+		return errors.New("no draws left")
 	}
 	var draw Tile
 	draw, r.Wall = drawFront(r.Wall)
