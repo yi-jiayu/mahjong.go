@@ -468,7 +468,7 @@ func TestRound_Kong(t *testing.T) {
 			Discards:      []Tile{TileBamboo1},
 			Hands:         [4]Hand{{Revealed: [][]Tile{{TileBamboo1, TileBamboo1, TileBamboo1}}}},
 		}
-		err := round.Kong(DirectionEast, TileBamboo1)
+		_, _, err := round.Kong(DirectionEast, TileBamboo1)
 		assert.EqualError(t, err, "not allowed")
 	})
 	t.Run("tiles concealed, tile from discards - exposed kong", func(t *testing.T) {
@@ -479,7 +479,7 @@ func TestRound_Kong(t *testing.T) {
 			Discards:      []Tile{TileDragonsRed, TileBamboo1},
 			Hands:         [4]Hand{{Concealed: []Tile{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}}},
 		}
-		err := round.Kong(DirectionEast, TileBamboo1)
+		_, _, err := round.Kong(DirectionEast, TileBamboo1)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
@@ -500,7 +500,7 @@ func TestRound_Kong(t *testing.T) {
 					Concealed: []Tile{TileCharacters1, TileBamboo1, TileWindsWest}},
 			},
 		}
-		err := round.Kong(DirectionEast, TileBamboo1)
+		_, _, err := round.Kong(DirectionEast, TileBamboo1)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
@@ -520,7 +520,7 @@ func TestRound_Kong(t *testing.T) {
 					Concealed: []Tile{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}},
 			},
 		}
-		err := round.Kong(DirectionEast, TileBamboo1)
+		_, _, err := round.Kong(DirectionEast, TileBamboo1)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
@@ -540,8 +540,10 @@ func TestRound_Kong(t *testing.T) {
 					Concealed: []Tile{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}},
 			},
 		}
-		err := round.Kong(DirectionEast, TileBamboo1)
+		drawn, flowers, err := round.Kong(DirectionEast, TileBamboo1)
 		assert.NoError(t, err)
+		assert.Equal(t, TileWindsEast, drawn)
+		assert.Equal(t, []Tile{TileCat}, flowers)
 		assert.Equal(t, []Tile{TileDragonsRed}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
 		assert.Equal(t, []Tile{TileCat}, round.Hands[DirectionEast].Flowers)

@@ -423,43 +423,45 @@ func (r *Round) lastDiscard() Tile {
 	return ""
 }
 
-func (r *Round) drawFlower(seat Direction) {
+func (r *Round) drawFlower(seat Direction) (Tile, []Tile) {
+	flowers := make([]Tile, 0)
 	for {
 		var draw Tile
 		draw, r.Wall = drawBack(r.Wall)
 		if !isFlower(draw) {
 			r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
-			return
+			return draw, flowers
 		}
 		r.Hands[seat].Flowers = append(r.Hands[seat].Flowers, draw)
+		flowers = append(flowers, draw)
 	}
 }
 
-func (r *Round) Kong(seat Direction, tile Tile) error {
+func (r *Round) Kong(seat Direction, tile Tile) (Tile, []Tile, error) {
 	if r.CurrentAction == ActionDraw && seat != r.PreviousTurn() && countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
 		r.Discards = r.Discards[:len(r.Discards)-1]
 		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 3)
 		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile, tile})
-		r.drawFlower(seat)
+		drawn, flowers := r.drawFlower(seat)
 		r.CurrentAction = ActionDiscard
 		r.CurrentTurn = seat
-		return nil
+		return drawn, flowers, nil
 	}
 	if r.CurrentTurn == seat && r.CurrentAction == ActionDiscard {
 		if i := indexOfPeng(r.Hands[seat].Revealed, tile); i != -1 && contains(r.Hands[seat].Concealed, tile) {
 			r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile)
 			r.Hands[seat].Revealed[i] = append(r.Hands[seat].Revealed[i], tile)
-			r.drawFlower(seat)
-			return nil
+			drawn, flowers := r.drawFlower(seat)
+			return drawn, flowers, nil
 		}
-		if countTiles(r.Hands[seat].Concealed, tile) > 4 {
+		if countTiles(r.Hands[seat].Concealed, tile) >= 4 {
 			r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 4)
 			r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile, tile})
-			r.drawFlower(seat)
-			return nil
+			drawn, flowers := r.drawFlower(seat)
+			return drawn, flowers, nil
 		}
 	}
-	return errors.New("not allowed")
+	return "", nil, errors.New("not allowed")
 }
 
 func isChow(tiles []Tile) bool {
