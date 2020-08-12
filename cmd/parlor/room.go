@@ -14,6 +14,7 @@ import (
 const (
 	PhaseLobby = iota
 	PhaseInProgress
+	PhaseRoundOver
 )
 
 type Room struct {
@@ -143,9 +144,10 @@ func (r *Room) startRound() error {
 }
 
 type Action struct {
-	Nonce int            `json:"nonce"`
-	Type  string         `json:"type"`
-	Tiles []mahjong.Tile `json:"tiles"`
+	Nonce int              `json:"nonce"`
+	Type  string           `json:"type"`
+	Tiles []mahjong.Tile   `json:"tiles"`
+	Melds [][]mahjong.Tile `json:"melds"`
 }
 
 func (r *Room) handleAction(playerID string, action Action) error {
@@ -187,6 +189,13 @@ func (r *Room) handleAction(playerID string, action Action) error {
 			return errors.New("not enough tiles")
 		}
 		return r.Round.Kong(mahjong.Direction(seat), action.Tiles[0])
+	case "hu":
+		err := r.Round.Win(mahjong.Direction(seat), action.Melds)
+		if err != nil {
+			return err
+		}
+		r.Phase = PhaseRoundOver
+		return nil
 	default:
 		return errors.New("invalid action")
 	}

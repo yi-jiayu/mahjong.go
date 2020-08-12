@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -230,6 +231,30 @@ func main() {
 			}
 			room.Round.Wall = append([]mahjong.Tile{mahjong.Tile(tile)}, room.Round.Wall...)
 			room.broadcast()
+		})
+		r.POST("/debug/rooms/:id/round/hands/:seat/concealed", func(c *gin.Context) {
+			roomID := strings.ToUpper(c.Param("id"))
+			room, _ := roomRepository.Get(roomID)
+			if room == nil {
+				c.String(http.StatusNotFound, "Not Found")
+				return
+			}
+			if room.Phase != PhaseInProgress {
+				c.String(http.StatusBadRequest, "not in progress")
+				return
+			}
+			seat, err := strconv.Atoi(c.Param("seat"))
+			if err != nil {
+				c.String(http.StatusBadRequest, "invalid seat")
+				return
+			}
+			var tiles []mahjong.Tile
+			err = c.ShouldBindJSON(&tiles)
+			if err != nil {
+				c.Status(http.StatusBadRequest)
+				return
+			}
+			room.Round.Hands[seat].Concealed = tiles
 		})
 	}
 	r.Run("localhost:8080")
