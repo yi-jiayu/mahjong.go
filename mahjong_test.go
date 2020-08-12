@@ -618,3 +618,20 @@ func TestRound_Win(t *testing.T) {
 		assert.Empty(t, round.Hands[DirectionEast].Concealed)
 	})
 }
+
+func TestRound_EndGame(t *testing.T) {
+	t.Run("game is a draw", func(t *testing.T) {
+		round := &Round{
+			Wall: []Tile{
+				"38八万", "35五万", "27六索", "44红中",
+				"22一索", "34四万", "35五万", "20八筒",
+				"37七万", "13一筒", "43北风", "26五索",
+				"21九筒", "25四索", "42西风",
+			},
+			CurrentTurn:   DirectionEast,
+			CurrentAction: ActionDiscard,
+		}
+		err := round.EndGame(DirectionEast)
+		assert.NoError(t, err)
+	})
+}

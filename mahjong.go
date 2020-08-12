@@ -104,6 +104,9 @@ var validSequences = [][3]Tile{
 	{TileCharacters7, TileCharacters8, TileCharacters9},
 }
 
+// MinTilesLeft is the minimum number of tiles left before the game is considered a draw.
+const MinTilesLeft = 16
+
 type Hand struct {
 	Flowers   []Tile
 	Revealed  [][]Tile
@@ -153,7 +156,7 @@ func (r *Round) MarshalJSON() ([]byte, error) {
 		CurrentTurn   Direction `json:"current_turn"`
 		CurrentAction Action    `json:"current_action"`
 	}{
-		DrawsLeft:     len(r.Wall),
+		DrawsLeft:     len(r.Wall) - MinTilesLeft + 1,
 		Discards:      r.Discards,
 		Hands:         r.Hands,
 		CurrentTurn:   r.CurrentTurn,
@@ -522,6 +525,16 @@ func (r *Round) Win(seat Direction, melds [][]Tile) error {
 		r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, melds...)
 		r.Hands[seat].Concealed = []Tile{}
 		r.CurrentAction = ActionGameOver
+		return nil
+	}
+	return errors.New("not allowed")
+}
+
+// EndGame ends the game in a draw.
+func (r *Round) EndGame(seat Direction) error {
+	if r.CurrentTurn == seat && len(r.Wall) < MinTilesLeft && r.CurrentAction == ActionDiscard {
+		r.CurrentAction = ActionGameOver
+		r.CurrentTurn = -1
 		return nil
 	}
 	return errors.New("not allowed")
