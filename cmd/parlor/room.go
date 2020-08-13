@@ -24,8 +24,13 @@ type Room struct {
 	Players []string
 	Round   *mahjong.Round
 
-	sync.Mutex
+	sync.RWMutex
 	clients map[chan string]struct{}
+}
+
+type Participant struct {
+	Seat      int            `json:"seat"`
+	Concealed []mahjong.Tile `json:"concealed,omitempty"`
 }
 
 func (r *Room) UnmarshalBinary(data []byte) error {
@@ -125,6 +130,26 @@ func (r *Room) RemoveClient(c chan string) {
 	defer r.Unlock()
 
 	delete(r.clients, c)
+}
+
+func (r *Room) GetParticipant(playerID string) Participant {
+	r.RLock()
+	defer r.RUnlock()
+	for i, id := range r.Players {
+		if id == playerID {
+			var concealed []mahjong.Tile
+			if r.Round != nil {
+				concealed = r.Round.Hands[i].Concealed
+			}
+			return Participant{
+				Seat:      i,
+				Concealed: concealed,
+			}
+		}
+	}
+	return Participant{
+		Seat: -1,
+	}
 }
 
 func (r *Room) broadcast() {

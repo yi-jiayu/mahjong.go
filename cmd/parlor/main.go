@@ -171,25 +171,9 @@ func main() {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		if room.Phase != PhaseInProgress {
-			c.JSON(http.StatusOK, map[string]string{})
-			return
-		}
 		playerID := c.MustGet("id").(string)
-		var seat int
-		var concealed []mahjong.Tile
-		for i, id := range room.Players {
-			if id == playerID {
-				seat = i
-				concealed = room.Round.Hands[i].Concealed
-				c.JSON(http.StatusOK, map[string]interface{}{
-					"seat":      seat,
-					"concealed": concealed,
-				})
-				return
-			}
-		}
-		c.JSON(http.StatusOK, map[string]string{})
+		participant := room.GetParticipant(playerID)
+		c.JSON(http.StatusOK, participant)
 	})
 	if gin.IsDebugging() {
 		r.POST("/debug/rooms/:id/reshuffle", func(c *gin.Context) {
