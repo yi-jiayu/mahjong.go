@@ -25,13 +25,46 @@ type Room struct {
 	Round   *mahjong.Round
 
 	sync.RWMutex
-	clients map[chan string]struct{}
+
+	// clients is a map of channels to player IDs.
+	clients map[chan string]string
 }
 
-type Participant struct {
-	Nonce     int            `json:"nonce"`
-	Seat      int            `json:"seat"`
-	Concealed []mahjong.Tile `json:"concealed,omitempty"`
+// RoomView represents a specific player or bystander's view of the room.
+type RoomView struct {
+	PlayerID string
+	Room     *Room
+}
+
+func (r RoomView) MarshalJSON() ([]byte, error) {
+	seat := -1
+	for i, id := range r.Room.Players {
+		if id == r.PlayerID {
+			seat = i
+			break
+		}
+	}
+	players := make([]string, len(r.Room.Players))
+	for i, playerID := range r.Room.Players {
+		players[i] = playerRegistry.GetName(playerID)
+	}
+	v := struct {
+		Seat    int                `json:"seat"`
+		Nonce   int                `json:"nonce"`
+		Phase   int                `json:"phase"`
+		Players []string           `json:"players"`
+		Round   *mahjong.RoundView `json:"round"`
+	}{
+		Seat:    seat,
+		Nonce:   r.Room.Nonce,
+		Phase:   r.Room.Phase,
+		Players: players,
+	}
+	if r.Room.Round != nil {
+		round := r.Room.Round.ViewFromSeat(mahjong.Direction(seat))
+		v.Round = &round
+	}
+	return json.Marshal(v)
 }
 
 func (r *Room) UnmarshalBinary(data []byte) error {
@@ -51,7 +84,7 @@ func (r *Room) UnmarshalBinary(data []byte) error {
 	r.Phase = room.Phase
 	r.Players = room.Players
 	r.Round = room.Round
-	r.clients = map[chan string]struct{}{}
+	r.clients = map[chan string]string{}
 	return nil
 }
 
@@ -75,39 +108,24 @@ func (r *Room) MarshalBinary() ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func (r *Room) MarshalJSON() ([]byte, error) {
-	players := make([]string, len(r.Players))
-	for i, playerID := range r.Players {
-		players[i] = playerRegistry.GetName(playerID)
-	}
-	return json.Marshal(struct {
-		Nonce   int            `json:"nonce"`
-		Phase   int            `json:"phase"`
-		Players []string       `json:"players"`
-		Round   *mahjong.Round `json:"round"`
-	}{
-		Nonce:   r.Nonce,
-		Phase:   r.Phase,
-		Players: players,
-		Round:   r.Round,
-	})
-}
-
 func NewRoom(host string) *Room {
 	return &Room{
 		Players: []string{host},
-		clients: map[chan string]struct{}{},
+		clients: map[chan string]string{},
 	}
 }
 
-func (r *Room) AddClient(c chan string) {
+func (r *Room) AddClient(playerID string, c chan string) {
 	r.Lock()
 	defer r.Unlock()
 
-	r.clients[c] = struct{}{}
+	r.clients[c] = playerID
 	go func() {
 		var b bytes.Buffer
-		json.NewEncoder(&b).Encode(r)
+		json.NewEncoder(&b).Encode(RoomView{
+			PlayerID: playerID,
+			Room:     r,
+		})
 		c <- b.String()
 	}()
 }
@@ -135,31 +153,13 @@ func (r *Room) RemoveClient(c chan string) {
 	delete(r.clients, c)
 }
 
-func (r *Room) GetParticipant(playerID string) Participant {
-	r.RLock()
-	defer r.RUnlock()
-	for i, id := range r.Players {
-		if id == playerID {
-			participant := Participant{
-				Nonce: r.Nonce,
-				Seat:  i,
-			}
-			if r.Round != nil {
-				participant.Concealed = r.Round.Hands[i].Concealed
-			}
-			return participant
-		}
-	}
-	return Participant{
-		Nonce: r.Nonce,
-		Seat:  -1,
-	}
-}
-
 func (r *Room) broadcast() {
-	var b bytes.Buffer
-	json.NewEncoder(&b).Encode(r)
-	for c := range r.clients {
+	for c, playerID := range r.clients {
+		var b bytes.Buffer
+		json.NewEncoder(&b).Encode(RoomView{
+			PlayerID: playerID,
+			Room:     r,
+		})
 		c <- b.String()
 	}
 }

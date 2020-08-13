@@ -107,11 +107,9 @@ func main() {
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 
-		// Each connection registers its own message channel with the Broker's connections registry
+		playerID := c.GetString("id")
 		ch := make(chan string)
-
-		// Signal the broker that we have a new connection
-		room.AddClient(ch)
+		room.AddClient(playerID, ch)
 
 		// Remove this client from the map of connected clients
 		// when this handler exits.
@@ -163,17 +161,6 @@ func main() {
 			return
 		}
 		c.JSON(http.StatusOK, result)
-	})
-	r.GET("/rooms/:id/self", func(c *gin.Context) {
-		roomID := strings.ToUpper(c.Param("id"))
-		room, _ := roomRepository.Get(roomID)
-		if room == nil {
-			c.String(http.StatusNotFound, "Not Found")
-			return
-		}
-		playerID := c.MustGet("id").(string)
-		participant := room.GetParticipant(playerID)
-		c.JSON(http.StatusOK, participant)
 	})
 	if gin.IsDebugging() {
 		r.POST("/debug/rooms/:id/reshuffle", func(c *gin.Context) {

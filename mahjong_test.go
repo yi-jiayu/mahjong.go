@@ -696,3 +696,34 @@ func TestRound_EndGame(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func allEmpty(tiles []Tile) bool {
+	for _, tile := range tiles {
+		if tile != "" {
+			return false
+		}
+	}
+	return true
+}
+
+func TestRound_ViewFromSeat(t *testing.T) {
+	t.Run("valid direction", func(t *testing.T) {
+		round := NewRound(0)
+		viewFromEast := round.ViewFromSeat(DirectionEast)
+		assert.Equal(t, len(round.Wall)-MinTilesLeft+1, viewFromEast.DrawsLeft)
+		assert.Equal(t, round.CurrentAction, viewFromEast.CurrentAction)
+		assert.Equal(t, round.CurrentTurn, viewFromEast.CurrentTurn)
+		assert.Equal(t, round.Discards, viewFromEast.Discards)
+		assert.Equal(t, round.Hands[DirectionEast], viewFromEast.Hands[DirectionEast])
+		assert.Equal(t, len(round.Hands[DirectionSouth].Concealed), len(viewFromEast.Hands[DirectionSouth].Concealed))
+		assert.True(t, allEmpty(viewFromEast.Hands[DirectionSouth].Concealed))
+	})
+	t.Run("invalid direction", func(t *testing.T) {
+		round := NewRound(0)
+		viewFromNowhere := round.ViewFromSeat(-1)
+		assert.True(t, allEmpty(viewFromNowhere.Hands[DirectionEast].Concealed))
+		assert.True(t, allEmpty(viewFromNowhere.Hands[DirectionSouth].Concealed))
+		assert.True(t, allEmpty(viewFromNowhere.Hands[DirectionWest].Concealed))
+		assert.True(t, allEmpty(viewFromNowhere.Hands[DirectionNorth].Concealed))
+	})
+}

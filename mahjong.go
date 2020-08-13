@@ -1,7 +1,6 @@
 package mahjong
 
 import (
-	"encoding/json"
 	"errors"
 	"math/rand"
 	"sort"
@@ -108,22 +107,18 @@ var validSequences = [][3]Tile{
 const MinTilesLeft = 16
 
 type Hand struct {
-	Flowers   []Tile
-	Revealed  [][]Tile
-	Concealed []Tile
+	Flowers   []Tile   `json:"flowers"`
+	Revealed  [][]Tile `json:"revealed"`
+	Concealed []Tile   `json:"concealed"`
 }
 
-func (h Hand) MarshalJSON() ([]byte, error) {
-	masked := make([]Tile, len(h.Concealed))
-	return json.Marshal(struct {
-		Flowers   []Tile   `json:"flowers"`
-		Revealed  [][]Tile `json:"revealed"`
-		Concealed []Tile   `json:"concealed"`
-	}{
+// Masked returns a copy of a Hand with concealed tiles replaced with empty strings.
+func (h Hand) Masked() Hand {
+	return Hand{
 		Flowers:   h.Flowers,
 		Revealed:  h.Revealed,
-		Concealed: masked,
-	})
+		Concealed: make([]Tile, len(h.Concealed)),
+	}
 }
 
 type Round struct {
@@ -146,22 +141,6 @@ const (
 type Meld struct {
 	Type  MeldType
 	Tiles []Tile
-}
-
-func (r *Round) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		DrawsLeft     int       `json:"draws_left"`
-		Discards      []Tile    `json:"discards"`
-		Hands         [4]Hand   `json:"hands"`
-		CurrentTurn   Direction `json:"current_turn"`
-		CurrentAction Action    `json:"current_action"`
-	}{
-		DrawsLeft:     len(r.Wall) - MinTilesLeft + 1,
-		Discards:      r.Discards,
-		Hands:         r.Hands,
-		CurrentTurn:   r.CurrentTurn,
-		CurrentAction: r.CurrentAction,
-	})
 }
 
 func newWall(r *rand.Rand) []Tile {
@@ -549,6 +528,34 @@ func (r *Round) EndGame(seat Direction) error {
 		return nil
 	}
 	return errors.New("not allowed")
+}
+
+// RoundView represents a view of a round with non-public information removed.
+type RoundView struct {
+	DrawsLeft     int       `json:"draws_left"`
+	Discards      []Tile    `json:"discards"`
+	Hands         [4]Hand   `json:"hands"`
+	CurrentTurn   Direction `json:"current_turn"`
+	CurrentAction Action    `json:"current_action"`
+}
+
+// ViewFromSeat returns a RoundView from a specific seat.
+func (r *Round) ViewFromSeat(seat Direction) RoundView {
+	var hands [4]Hand
+	for i, hand := range r.Hands {
+		if Direction(i) == seat {
+			hands[i] = hand
+		} else {
+			hands[i] = hand.Masked()
+		}
+	}
+	return RoundView{
+		DrawsLeft:     len(r.Wall) - MinTilesLeft + 1,
+		Discards:      r.Discards,
+		Hands:         hands,
+		CurrentTurn:   r.CurrentTurn,
+		CurrentAction: r.CurrentAction,
+	}
 }
 
 func NewRound(seed int64) *Round {
