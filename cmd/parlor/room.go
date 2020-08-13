@@ -105,9 +105,11 @@ func (r *Room) AddClient(c chan string) {
 	defer r.Unlock()
 
 	r.clients[c] = struct{}{}
-	var b bytes.Buffer
-	json.NewEncoder(&b).Encode(r)
-	c <- b.String()
+	go func() {
+		var b bytes.Buffer
+		json.NewEncoder(&b).Encode(r)
+		c <- b.String()
+	}()
 }
 
 func (r *Room) AddPlayer(id string) error {

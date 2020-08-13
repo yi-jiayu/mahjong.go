@@ -111,7 +111,7 @@ func main() {
 		ch := make(chan string)
 
 		// Signal the broker that we have a new connection
-		go room.AddClient(ch)
+		room.AddClient(ch)
 
 		// Remove this client from the map of connected clients
 		// when this handler exits.
