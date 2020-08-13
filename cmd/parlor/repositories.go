@@ -21,7 +21,7 @@ func newRoomID() string {
 
 type RoomRepository interface {
 	Insert(room *Room) (string, error)
-	Save(id string, room *Room) error
+	Save(room *Room) error
 	Get(id string) (*Room, error)
 }
 
@@ -49,10 +49,10 @@ func (r *InMemoryRoomRepository) Insert(room *Room) (string, error) {
 	}
 }
 
-func (r *InMemoryRoomRepository) Save(id string, room *Room) error {
+func (r *InMemoryRoomRepository) Save(room *Room) error {
 	r.Lock()
 	defer r.Unlock()
-	r.rooms[id] = room
+	r.rooms[room.ID] = room
 	return nil
 }
 
@@ -100,15 +100,15 @@ func (r *RedisRoomRepository) Insert(room *Room) (string, error) {
 	}
 }
 
-func (r *RedisRoomRepository) Save(id string, room *Room) error {
+func (r *RedisRoomRepository) Save(room *Room) error {
 	r.Lock()
 	defer r.Unlock()
 	data, err := room.MarshalBinary()
 	if err != nil {
 		return err
 	}
-	r.cache[id] = room
-	_, err = r.client.Set(context.Background(), r.key(id), data, 0).Result()
+	r.cache[room.ID] = room
+	_, err = r.client.Set(context.Background(), r.key(room.ID), data, 0).Result()
 	return err
 }
 

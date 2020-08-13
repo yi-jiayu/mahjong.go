@@ -18,6 +18,7 @@ const (
 )
 
 type Room struct {
+	ID      string
 	Nonce   int
 	Phase   int
 	Players []string
