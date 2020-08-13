@@ -29,6 +29,7 @@ type Room struct {
 }
 
 type Participant struct {
+	Nonce     int            `json:"nonce"`
 	Seat      int            `json:"seat"`
 	Concealed []mahjong.Tile `json:"concealed,omitempty"`
 }
@@ -137,18 +138,19 @@ func (r *Room) GetParticipant(playerID string) Participant {
 	defer r.RUnlock()
 	for i, id := range r.Players {
 		if id == playerID {
-			var concealed []mahjong.Tile
+			participant := Participant{
+				Nonce: r.Nonce,
+				Seat:  i,
+			}
 			if r.Round != nil {
-				concealed = r.Round.Hands[i].Concealed
+				participant.Concealed = r.Round.Hands[i].Concealed
 			}
-			return Participant{
-				Seat:      i,
-				Concealed: concealed,
-			}
+			return participant
 		}
 	}
 	return Participant{
-		Seat: -1,
+		Nonce: r.Nonce,
+		Seat:  -1,
 	}
 }
 
