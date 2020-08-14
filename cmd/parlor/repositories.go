@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	crypto "crypto/rand"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -44,6 +47,7 @@ func (r *InMemoryRoomRepository) Insert(room *Room) (string, error) {
 		if _, ok := r.rooms[id]; ok {
 			continue
 		}
+		room.ID = id
 		r.rooms[id] = room
 		return id, nil
 	}
@@ -134,30 +138,79 @@ func (r *RedisRoomRepository) Get(id string) (*Room, error) {
 }
 
 type Player struct {
-	Name string
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
-func newPlayerName() string {
+func newPlayerID() string {
+	b := make([]byte, 8)
+	crypto.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func randomPlayerName() string {
 	return fmt.Sprintf("anon#%04d", rand.Intn(1000))
 }
 
 type PlayerRepository interface {
-	Insert(id string, player Player) error
+	// Insert creates a new player. Implementations should generate the player ID and name if empty.
+	Insert(player *Player) error
 	Get(id string) (Player, error)
 }
 
-type RedisPlayerRepository struct {
-	client *redis.Client
+type InMemoryPlayerRepository struct {
+	sync.RWMutex
+	players map[string]Player
+	names   map[string]struct{}
 }
 
-func (r *RedisPlayerRepository) key(id string) string {
-	return "player:" + id
+func (r *InMemoryPlayerRepository) Insert(player *Player) error {
+	r.Lock()
+	defer r.Unlock()
+	if player.ID != "" {
+		if _, exists := r.players[player.ID]; exists {
+			return errors.New("id already exists")
+		}
+	} else {
+		for {
+			id := newPlayerID()
+			if _, exists := r.players[id]; !exists {
+				player.ID = id
+				break
+			}
+		}
+	}
+	if player.Name != "" {
+		if _, exists := r.names[player.Name]; exists {
+			return errors.New("name already exists")
+		}
+	} else {
+		for {
+			name := randomPlayerName()
+			if _, exists := r.names[name]; !exists {
+				player.Name = name
+				break
+			}
+		}
+	}
+	r.players[player.ID] = *player
+	r.names[player.Name] = struct{}{}
+	return nil
 }
 
-func (r *RedisPlayerRepository) Insert(id string, player Player) error {
-	panic("implement me")
+func (r *InMemoryPlayerRepository) Get(id string) (Player, error) {
+	r.RLock()
+	defer r.RUnlock()
+	player, ok := r.players[id]
+	if !ok {
+		return player, ErrNotFound
+	}
+	return player, nil
 }
 
-func (r *RedisPlayerRepository) Get(id string) (Player, error) {
-	panic("implement me")
+func NewInMemoryPlayerRepository() *InMemoryPlayerRepository {
+	return &InMemoryPlayerRepository{
+		players: map[string]Player{},
+		names:   map[string]struct{}{},
+	}
 }

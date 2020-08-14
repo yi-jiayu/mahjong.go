@@ -1,13 +1,11 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -17,29 +15,10 @@ import (
 	"github.com/yi-jiayu/mahjong.go"
 )
 
-type PlayerRegistry struct {
-	sync.RWMutex
-	Names map[string]string
-}
-
-func (r *PlayerRegistry) GetName(id string) string {
-	r.RLock()
-	defer r.RUnlock()
-	return r.Names[id]
-}
-
 var (
-	playerRegistry = &PlayerRegistry{
-		Names: map[string]string{},
-	}
-	roomRepository RoomRepository = NewInMemoryRoomRepository()
+	playerRepository PlayerRepository = NewInMemoryPlayerRepository()
+	roomRepository   RoomRepository   = NewInMemoryRoomRepository()
 )
-
-func newSessionID() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
-}
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -55,36 +34,31 @@ func main() {
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,
 		})
-		if id := session.Get("id"); id != nil {
-			c.Set("id", id)
-		} else {
-			id := newSessionID()
-			session.Set("id", id)
-			playerRegistry.Lock()
-			for {
-				name := fmt.Sprintf("anon#%04d", rand.Intn(1000))
-				if _, ok := playerRegistry.Names[id]; !ok {
-					playerRegistry.Names[id] = name
-					break
-				}
+		var playerID string
+		id := session.Get("id")
+		if id != nil {
+			if s, ok := id.(string); ok {
+				playerID = s
 			}
-			playerRegistry.Unlock()
-			session.Save()
-			c.Set("id", id)
 		}
+		var player Player
+		var err error
+		player, err = playerRepository.Get(playerID)
+		if err != nil {
+			_ = playerRepository.Insert(&player)
+			session.Set("id", player.ID)
+		}
+		c.Set("player", player)
+		session.Save()
 		c.Next()
 	})
 	r.GET("/self", func(c *gin.Context) {
-		id := c.MustGet("id").(string)
-		name := playerRegistry.GetName(id)
-		c.JSON(http.StatusOK, map[string]string{
-			"id":   id,
-			"name": name,
-		})
+		player := c.MustGet("player").(Player)
+		c.JSON(http.StatusOK, player)
 	})
 	r.POST("/rooms", func(c *gin.Context) {
-		id := c.MustGet("id").(string)
-		room := NewRoom(id)
+		player := c.MustGet("player").(Player)
+		room := NewRoom(player.ID)
 		roomID, _ := roomRepository.Insert(room)
 		c.JSON(http.StatusOK, map[string]string{
 			"room_id": roomID,
@@ -107,9 +81,9 @@ func main() {
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 
-		playerID := c.GetString("id")
+		player := c.MustGet("player").(Player)
 		ch := make(chan string)
-		room.AddClient(playerID, ch)
+		room.AddClient(player.ID, ch)
 
 		// Remove this client from the map of connected clients
 		// when this handler exits.
@@ -135,8 +109,8 @@ func main() {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		playerID := c.MustGet("id").(string)
-		err := room.AddPlayer(playerID)
+		player := c.MustGet("player").(Player)
+		err := room.AddPlayer(player.ID)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
@@ -149,13 +123,13 @@ func main() {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		playerID := c.MustGet("id").(string)
+		player := c.MustGet("player").(Player)
 		var action Action
 		if err := c.ShouldBindJSON(&action); err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		result, err := room.HandleAction(playerID, action)
+		result, err := room.HandleAction(player.ID, action)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return

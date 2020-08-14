@@ -46,7 +46,12 @@ func (r RoomView) MarshalJSON() ([]byte, error) {
 	}
 	players := make([]string, len(r.Room.Players))
 	for i, playerID := range r.Room.Players {
-		players[i] = playerRegistry.GetName(playerID)
+		player, err := playerRepository.Get(playerID)
+		if err != nil {
+			players[i] = "Unknown player"
+		} else {
+			players[i] = player.Name
+		}
 	}
 	v := struct {
 		Seat    int                `json:"seat"`
