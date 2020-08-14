@@ -140,6 +140,9 @@ func (r *RedisRoomRepository) Get(id string) (*Room, error) {
 type Player struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+
+	// NamePrefix controls the prefix of the random name which would be generated on insert if Name was empty.
+	NamePrefix string `json:"-"`
 }
 
 func newPlayerID() string {
@@ -148,8 +151,8 @@ func newPlayerID() string {
 	return hex.EncodeToString(b)
 }
 
-func randomPlayerName() string {
-	return fmt.Sprintf("anon#%04d", rand.Intn(1000))
+func randomName(prefix string) string {
+	return fmt.Sprintf("%s#%04d", prefix, rand.Intn(1000))
 }
 
 type PlayerRepository interface {
@@ -186,7 +189,11 @@ func (r *InMemoryPlayerRepository) Insert(player *Player) error {
 		}
 	} else {
 		for {
-			name := randomPlayerName()
+			prefix := "anon"
+			if player.NamePrefix != "" {
+				prefix = player.NamePrefix
+			}
+			name := randomName(prefix)
 			if _, exists := r.names[name]; !exists {
 				player.Name = name
 				break

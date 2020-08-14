@@ -135,19 +135,44 @@ func (r *Room) AddClient(playerID string, c chan string) {
 	}()
 }
 
-func (r *Room) AddPlayer(id string) error {
-	r.Lock()
-	defer r.Unlock()
+func (r *Room) addPlayer(id string) error {
 	if len(r.Players) == 4 {
 		return errors.New("room full")
 	}
 	for _, p := range r.Players {
 		if p == id {
-			return errors.New("already joined")
+			return nil
 		}
 	}
 	r.Players = append(r.Players, id)
 	r.broadcast()
+	return nil
+}
+
+func (r *Room) AddPlayer(id string) error {
+	r.Lock()
+	defer r.Unlock()
+	return r.addPlayer(id)
+}
+
+func (r *Room) AddBot(playerID string, bot *Bot) error {
+	r.Lock()
+	defer r.Unlock()
+	found := false
+	for _, id := range r.Players {
+		if id == playerID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errors.New("not allowed")
+	}
+	err := r.addPlayer(bot.ID)
+	if err != nil {
+		return err
+	}
+	r.clients[bot.GameUpdates] = bot.ID
 	return nil
 }
 

@@ -116,6 +116,21 @@ func main() {
 			return
 		}
 	})
+	r.POST("/rooms/:id/bots", func(c *gin.Context) {
+		roomID := strings.ToUpper(c.Param("id"))
+		room, _ := roomRepository.Get(roomID)
+		if room == nil {
+			c.String(http.StatusNotFound, "Not Found")
+			return
+		}
+		player := c.MustGet("player").(Player)
+		bot := NewBot(room)
+		err := room.AddBot(player.ID, bot)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+		go bot.Run()
+	})
 	r.POST("/rooms/:id/actions", func(c *gin.Context) {
 		roomID := strings.ToUpper(c.Param("id"))
 		room, _ := roomRepository.Get(roomID)
