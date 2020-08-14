@@ -42,8 +42,8 @@ func (b *Bot) Run() {
 			}
 			if state.Round.CurrentTurn == state.Seat {
 				if state.Round.CurrentAction == mahjong.ActionDraw {
-					delay := 2 + time.Duration(rand.Intn(4))
-					time.Sleep(delay)
+					delay := 2 + rand.Intn(4)
+					time.Sleep(time.Duration(delay) * time.Second)
 					b.Room.HandleAction(b.ID, Action{
 						Nonce: state.Nonce,
 						Type:  "draw",
