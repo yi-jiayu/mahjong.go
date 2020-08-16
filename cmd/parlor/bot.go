@@ -29,13 +29,7 @@ func NewBot(room *Room) *Bot {
 func (b *Bot) Run() {
 	for update := range b.GameUpdates {
 		go func(update string) {
-			var state struct {
-				Seat    mahjong.Direction  `json:"seat"`
-				Nonce   int                `json:"nonce"`
-				Phase   int                `json:"phase"`
-				Players []string           `json:"players"`
-				Round   *mahjong.RoundView `json:"round"`
-			}
+			var state RoomView
 			json.Unmarshal([]byte(update), &state)
 			if state.Phase != PhaseInProgress {
 				return

@@ -32,20 +32,23 @@ type Room struct {
 
 // RoomView represents a specific player or bystander's view of the room.
 type RoomView struct {
-	PlayerID string
-	Room     *Room
+	Seat    mahjong.Direction  `json:"seat"`
+	Nonce   int                `json:"nonce"`
+	Phase   int                `json:"phase"`
+	Players []string           `json:"players"`
+	Round   *mahjong.RoundView `json:"round"`
 }
 
-func (r RoomView) MarshalJSON() ([]byte, error) {
+func (r *Room) ViewAs(playerID string) RoomView {
 	seat := -1
-	for i, id := range r.Room.Players {
-		if id == r.PlayerID {
+	for i, id := range r.Players {
+		if id == playerID {
 			seat = i
 			break
 		}
 	}
-	players := make([]string, len(r.Room.Players))
-	for i, playerID := range r.Room.Players {
+	players := make([]string, len(r.Players))
+	for i, playerID := range r.Players {
 		player, err := playerRepository.Get(playerID)
 		if err != nil {
 			players[i] = "Unknown player"
@@ -53,23 +56,17 @@ func (r RoomView) MarshalJSON() ([]byte, error) {
 			players[i] = player.Name
 		}
 	}
-	v := struct {
-		Seat    int                `json:"seat"`
-		Nonce   int                `json:"nonce"`
-		Phase   int                `json:"phase"`
-		Players []string           `json:"players"`
-		Round   *mahjong.RoundView `json:"round"`
-	}{
-		Seat:    seat,
-		Nonce:   r.Room.Nonce,
-		Phase:   r.Room.Phase,
+	view := RoomView{
+		Seat:    mahjong.Direction(seat),
+		Nonce:   r.Nonce,
+		Phase:   r.Phase,
 		Players: players,
 	}
-	if r.Room.Round != nil {
-		round := r.Room.Round.ViewFromSeat(mahjong.Direction(seat))
-		v.Round = &round
+	if r.Round != nil {
+		round := r.Round.ViewFromSeat(mahjong.Direction(seat))
+		view.Round = &round
 	}
-	return json.Marshal(v)
+	return view
 }
 
 func (r *Room) UnmarshalBinary(data []byte) error {
@@ -127,10 +124,7 @@ func (r *Room) AddClient(playerID string, c chan string) {
 	r.clients[c] = playerID
 	go func() {
 		var b bytes.Buffer
-		json.NewEncoder(&b).Encode(RoomView{
-			PlayerID: playerID,
-			Room:     r,
-		})
+		json.NewEncoder(&b).Encode(r.ViewAs(playerID))
 		c <- b.String()
 	}()
 }
@@ -186,10 +180,7 @@ func (r *Room) RemoveClient(c chan string) {
 func (r *Room) broadcast() {
 	for c, playerID := range r.clients {
 		var b bytes.Buffer
-		json.NewEncoder(&b).Encode(RoomView{
-			PlayerID: playerID,
-			Room:     r,
-		})
+		json.NewEncoder(&b).Encode(r.ViewAs(playerID))
 		c <- b.String()
 	}
 }
