@@ -64,14 +64,17 @@ type RoomView struct {
 	Round          *mahjong.RoundView `json:"round"`
 }
 
-func (r *Room) ViewAs(playerID string) RoomView {
-	seat := -1
+func (r *Room) seat(playerID string) int {
 	for i, id := range r.Players {
 		if id == playerID {
-			seat = (i - r.CurrentDealer + 4) % 4
-			break
+			return (i - r.CurrentDealer + 4) % 4
 		}
 	}
+	return -1
+}
+
+func (r *Room) ViewAs(playerID string) RoomView {
+	seat := r.seat(playerID)
 	players := make([]string, len(r.Players))
 	for i, playerID := range r.Players {
 		player, err := playerRepository.Get(playerID)
@@ -234,13 +237,7 @@ type DrawResult struct {
 }
 
 func (r *Room) handleAction(playerID string, action Action) (interface{}, error) {
-	seat := -1
-	for i, p := range r.Players {
-		if p == playerID {
-			seat = i
-			break
-		}
-	}
+	seat := r.seat(playerID)
 	if seat == -1 {
 		return nil, errors.New("player not in room")
 	}
@@ -330,4 +327,12 @@ func (r *Room) HandleAction(playerID string, action Action) (interface{}, error)
 	r.Nonce++
 	r.broadcast()
 	return result, nil
+}
+
+func DispatchAction(roomID, playerID string, action Action) (interface{}, error) {
+	room, err := roomRepository.Get(roomID)
+	if err != nil {
+		return nil, err
+	}
+	return room.HandleAction(playerID, action)
 }

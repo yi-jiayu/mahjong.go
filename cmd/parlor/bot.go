@@ -10,18 +10,18 @@ import (
 
 type Bot struct {
 	ID          string
-	Room        *Room
+	RoomID      string
 	GameUpdates chan string
 }
 
-func NewBot(room *Room) *Bot {
+func NewBot(roomID string) *Bot {
 	p := Player{
 		NamePrefix: "bot",
 	}
 	_ = playerRepository.Insert(&p)
 	return &Bot{
 		ID:          p.ID,
-		Room:        room,
+		RoomID:      roomID,
 		GameUpdates: make(chan string),
 	}
 }
@@ -38,14 +38,14 @@ func (b *Bot) Run() {
 				if state.Round.CurrentAction == mahjong.ActionDraw {
 					delay := 2 + rand.Intn(4)
 					time.Sleep(time.Duration(delay) * time.Second)
-					b.Room.HandleAction(b.ID, Action{
+					_, _ = DispatchAction(b.RoomID, b.ID, Action{
 						Nonce: state.Nonce,
 						Type:  "draw",
 					})
 				} else if state.Round.CurrentAction == mahjong.ActionDiscard {
 					concealed := state.Round.Hands[state.Seat].Concealed
 					tileToDiscard := concealed[rand.Intn(len(concealed))]
-					b.Room.HandleAction(b.ID, Action{
+					_, _ = DispatchAction(b.RoomID, b.ID, Action{
 						Nonce: state.Nonce,
 						Type:  "discard",
 						Tiles: []mahjong.Tile{tileToDiscard},

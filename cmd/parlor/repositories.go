@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 
 	"github.com/go-redis/redis/v8"
@@ -63,7 +64,12 @@ func (r *InMemoryRoomRepository) Save(room *Room) error {
 func (r *InMemoryRoomRepository) Get(id string) (*Room, error) {
 	r.RLock()
 	defer r.RUnlock()
-	return r.rooms[id], nil
+	id = strings.ToUpper(id)
+	room, ok := r.rooms[id]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return room, nil
 }
 
 type RedisRoomRepository struct {

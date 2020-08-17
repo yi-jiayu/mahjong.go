@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -65,8 +64,7 @@ func main() {
 		})
 	})
 	r.GET("/rooms/:id/live", func(c *gin.Context) {
-		roomID := strings.ToUpper(c.Param("id"))
-		room, _ := roomRepository.Get(roomID)
+		room, _ := roomRepository.Get(c.Param("id"))
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
@@ -103,8 +101,7 @@ func main() {
 		}
 	})
 	r.POST("/rooms/:id/players", func(c *gin.Context) {
-		roomID := strings.ToUpper(c.Param("id"))
-		room, _ := roomRepository.Get(roomID)
+		room, _ := roomRepository.Get(c.Param("id"))
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
@@ -117,14 +114,13 @@ func main() {
 		}
 	})
 	r.POST("/rooms/:id/bots", func(c *gin.Context) {
-		roomID := strings.ToUpper(c.Param("id"))
-		room, _ := roomRepository.Get(roomID)
+		room, _ := roomRepository.Get(c.Param("id"))
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
 		player := c.MustGet("player").(Player)
-		bot := NewBot(room)
+		bot := NewBot(room.ID)
 		err := room.AddBot(player.ID, bot)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
@@ -132,8 +128,7 @@ func main() {
 		go bot.Run()
 	})
 	r.POST("/rooms/:id/actions", func(c *gin.Context) {
-		roomID := strings.ToUpper(c.Param("id"))
-		room, _ := roomRepository.Get(roomID)
+		room, _ := roomRepository.Get(c.Param("id"))
 		if room == nil {
 			c.String(http.StatusNotFound, "Not Found")
 			return
@@ -153,8 +148,7 @@ func main() {
 	})
 	if gin.IsDebugging() {
 		r.POST("/debug/rooms/:id/reshuffle", func(c *gin.Context) {
-			roomID := strings.ToUpper(c.Param("id"))
-			room, _ := roomRepository.Get(roomID)
+			room, _ := roomRepository.Get(c.Param("id"))
 			if room == nil {
 				c.String(http.StatusNotFound, "Not Found")
 				return
@@ -167,8 +161,7 @@ func main() {
 			room.broadcast()
 		})
 		r.GET("/debug/rooms/:id/wall", func(c *gin.Context) {
-			roomID := strings.ToUpper(c.Param("id"))
-			room, _ := roomRepository.Get(roomID)
+			room, _ := roomRepository.Get(c.Param("id"))
 			if room == nil {
 				c.String(http.StatusNotFound, "Not Found")
 				return
@@ -180,8 +173,7 @@ func main() {
 			c.JSON(http.StatusOK, room.Round.Wall)
 		})
 		r.POST("/debug/rooms/:id/wall", func(c *gin.Context) {
-			roomID := strings.ToUpper(c.Param("id"))
-			room, _ := roomRepository.Get(roomID)
+			room, _ := roomRepository.Get(c.Param("id"))
 			if room == nil {
 				c.String(http.StatusNotFound, "Not Found")
 				return
@@ -199,8 +191,7 @@ func main() {
 			room.broadcast()
 		})
 		r.POST("/debug/rooms/:id/round/hands/:seat/concealed", func(c *gin.Context) {
-			roomID := strings.ToUpper(c.Param("id"))
-			room, _ := roomRepository.Get(roomID)
+			room, _ := roomRepository.Get(c.Param("id"))
 			if room == nil {
 				c.String(http.StatusNotFound, "Not Found")
 				return
