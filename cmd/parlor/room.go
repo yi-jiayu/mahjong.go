@@ -17,12 +17,35 @@ const (
 	PhaseRoundOver
 )
 
+// Result represents the result of a round.
+type Result struct {
+	// Dealer is the integer offset of the dealer for a particular round.
+	Dealer int `json:"dealer"`
+
+	// PrevailingWind was the prevailing wind for a particular round.
+	PrevailingWind mahjong.Direction `json:"prevailing_wind"`
+
+	// Winner is the integer offset of the winner for a particular round.
+	Winner int `json:"winner"`
+
+	Points int `json:"points"`
+}
+
 type Room struct {
 	ID      string
 	Nonce   int
 	Phase   int
 	Players []string
 	Round   *mahjong.Round
+
+	// CurrentDealer is the integer offset of the current dealer in the players array.
+	CurrentDealer int
+
+	// PrevailingWind is the prevailing wind for the current round.
+	PrevailingWind mahjong.Direction
+
+	// Results contains the results of previous rounds played in this room.
+	Results []Result
 
 	sync.RWMutex
 
@@ -32,18 +55,20 @@ type Room struct {
 
 // RoomView represents a specific player or bystander's view of the room.
 type RoomView struct {
-	Seat    mahjong.Direction  `json:"seat"`
-	Nonce   int                `json:"nonce"`
-	Phase   int                `json:"phase"`
-	Players []string           `json:"players"`
-	Round   *mahjong.RoundView `json:"round"`
+	Seat           mahjong.Direction  `json:"seat"`
+	Nonce          int                `json:"nonce"`
+	Phase          int                `json:"phase"`
+	Players        []string           `json:"players"`
+	Results        []Result           `json:"results"`
+	PrevailingWind mahjong.Direction  `json:"prevailing_wind"`
+	Round          *mahjong.RoundView `json:"round"`
 }
 
 func (r *Room) ViewAs(playerID string) RoomView {
 	seat := -1
 	for i, id := range r.Players {
 		if id == playerID {
-			seat = i
+			seat = (i - r.CurrentDealer + 4) % 4
 			break
 		}
 	}
@@ -51,16 +76,18 @@ func (r *Room) ViewAs(playerID string) RoomView {
 	for i, playerID := range r.Players {
 		player, err := playerRepository.Get(playerID)
 		if err != nil {
-			players[i] = "Unknown player"
+			players[(i-r.CurrentDealer+4)%4] = "Unknown player"
 		} else {
-			players[i] = player.Name
+			players[(i-r.CurrentDealer+4)%4] = player.Name
 		}
 	}
 	view := RoomView{
-		Seat:    mahjong.Direction(seat),
-		Nonce:   r.Nonce,
-		Phase:   r.Phase,
-		Players: players,
+		Seat:           mahjong.Direction(seat),
+		Nonce:          r.Nonce,
+		Phase:          r.Phase,
+		Players:        players,
+		Results:        r.Results,
+		PrevailingWind: r.PrevailingWind,
 	}
 	if r.Round != nil {
 		round := r.Round.ViewFromSeat(mahjong.Direction(seat))
@@ -265,6 +292,25 @@ func (r *Room) handleAction(playerID string, action Action) (interface{}, error)
 			return nil, err
 		}
 		r.Phase = PhaseRoundOver
+		result := Result{
+			Dealer:         r.CurrentDealer,
+			PrevailingWind: r.PrevailingWind,
+			Winner:         (r.CurrentDealer + int(r.Round.CurrentTurn)) % 4,
+		}
+		r.Results = append(r.Results, result)
+		return nil, nil
+	case "next round":
+		if r.Phase != PhaseRoundOver {
+			return nil, errors.New("the current round is not over")
+		}
+		if r.Round.CurrentTurn != 0 {
+			if r.CurrentDealer == 3 {
+				r.PrevailingWind++
+			}
+			r.CurrentDealer = (r.CurrentDealer + 1) % 4
+		}
+		r.Round = mahjong.NewRound(rand.Int63())
+		r.Phase = PhaseInProgress
 		return nil, nil
 	default:
 		return nil, errors.New("invalid action")
