@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/yi-jiayu/mahjong.go"
 )
@@ -220,6 +221,7 @@ func (r *Room) startRound() error {
 		return errors.New("not enough players")
 	}
 	r.Round = mahjong.NewRound(rand.Int63())
+	r.Round.PongDuration = 2 * time.Second
 	r.Phase = PhaseInProgress
 	return nil
 }
@@ -251,9 +253,9 @@ func (r *Room) handleAction(playerID string, action Action) (interface{}, error)
 		if len(action.Tiles) < 0 {
 			return nil, errors.New("not enough tiles")
 		}
-		return nil, r.Round.Discard(mahjong.Direction(seat), action.Tiles[0])
+		return nil, r.Round.Discard(mahjong.Direction(seat), action.Tiles[0], time.Now())
 	case "draw":
-		drawn, flowers, err := r.Round.Draw(mahjong.Direction(seat))
+		drawn, flowers, err := r.Round.Draw(mahjong.Direction(seat), time.Now())
 		if err != nil {
 			return nil, err
 		}
@@ -265,7 +267,7 @@ func (r *Room) handleAction(playerID string, action Action) (interface{}, error)
 		if len(action.Tiles) < 2 {
 			return nil, errors.New("not enough tiles")
 		}
-		return nil, r.Round.Chow(mahjong.Direction(seat), action.Tiles[0], action.Tiles[1])
+		return nil, r.Round.Chow(mahjong.Direction(seat), action.Tiles[0], action.Tiles[1], time.Now())
 	case "peng":
 		if len(action.Tiles) < 1 {
 			return nil, errors.New("not enough tiles")
@@ -307,6 +309,7 @@ func (r *Room) handleAction(playerID string, action Action) (interface{}, error)
 			r.CurrentDealer = (r.CurrentDealer + 1) % 4
 		}
 		r.Round = mahjong.NewRound(rand.Int63())
+		r.Round.PongDuration = 2 * time.Second
 		r.Phase = PhaseInProgress
 		return nil, nil
 	default:

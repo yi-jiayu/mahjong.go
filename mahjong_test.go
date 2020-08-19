@@ -1,9 +1,11 @@
 package mahjong
 
 import (
+	"encoding/json"
 	"math/rand"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -189,12 +191,12 @@ func Test_distributeTiles(t *testing.T) {
 func TestRound_Discard(t *testing.T) {
 	t.Run("wrong turn", func(t *testing.T) {
 		round := &Round{CurrentTurn: DirectionEast}
-		err := round.Discard(DirectionSouth, "")
+		err := round.Discard(DirectionSouth, "", time.Now())
 		assert.Error(t, err)
 	})
 	t.Run("wrong action", func(t *testing.T) {
 		round := &Round{CurrentAction: ActionDraw}
-		err := round.Discard(DirectionEast, "")
+		err := round.Discard(DirectionEast, "", time.Now())
 		assert.Error(t, err)
 	})
 	t.Run("no such tile", func(t *testing.T) {
@@ -203,7 +205,7 @@ func TestRound_Discard(t *testing.T) {
 			CurrentAction: ActionDiscard,
 			Hands:         [4]Hand{{}},
 		}
-		err := round.Discard(DirectionEast, "")
+		err := round.Discard(DirectionEast, "", time.Now())
 		assert.Error(t, err)
 	})
 	t.Run("cannot discard last tile", func(t *testing.T) {
@@ -217,10 +219,11 @@ func TestRound_Discard(t *testing.T) {
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDiscard,
 		}
-		err := round.Discard(DirectionEast, "")
+		err := round.Discard(DirectionEast, "", time.Now())
 		assert.EqualError(t, err, "cannot discard on last round")
 	})
 	t.Run("success", func(t *testing.T) {
+		now := time.Now()
 		round := &Round{
 			Wall: []Tile{"38八万", "35五万", "27六索", "44红中",
 				"22一索", "34四万", "35五万", "20八筒",
@@ -230,24 +233,25 @@ func TestRound_Discard(t *testing.T) {
 			CurrentAction: ActionDiscard,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsEast, TileWindsEast, TileWindsEast}}},
 		}
-		err := round.Discard(DirectionEast, TileWindsEast)
+		err := round.Discard(DirectionEast, TileWindsEast, now)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileWindsEast}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsEast, TileWindsEast}, round.Hands[DirectionEast].Concealed)
 		assert.Equal(t, DirectionSouth, round.CurrentTurn)
 		assert.Equal(t, ActionDraw, round.CurrentAction)
+		assert.Equal(t, now, round.LastDiscardTime)
 	})
 }
 
 func TestRound_Chow(t *testing.T) {
 	t.Run("wrong turn", func(t *testing.T) {
 		round := &Round{CurrentTurn: DirectionEast}
-		err := round.Chow(DirectionSouth, "", "")
+		err := round.Chow(DirectionSouth, "", "", time.Now())
 		assert.Error(t, err)
 	})
 	t.Run("wrong action", func(t *testing.T) {
 		round := &Round{CurrentAction: ActionDiscard}
-		err := round.Chow(DirectionEast, "", "")
+		err := round.Chow(DirectionEast, "", "", time.Now())
 		assert.Error(t, err)
 	})
 	t.Run("no such tiles", func(t *testing.T) {
@@ -256,7 +260,7 @@ func TestRound_Chow(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{}},
 		}
-		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2)
+		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2, time.Now())
 		assert.Error(t, err)
 	})
 	t.Run("invalid sequence", func(t *testing.T) {
@@ -266,8 +270,22 @@ func TestRound_Chow(t *testing.T) {
 			Discards:      []Tile{TileBamboo4},
 			Hands:         [4]Hand{{Concealed: []Tile{TileBamboo1, TileBamboo2}}},
 		}
-		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2)
+		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2, time.Now())
 		assert.Error(t, err)
+	})
+	t.Run("cannot chi within pong duration of last discard", func(t *testing.T) {
+		now := time.Now()
+		oneSecondAgo := now.Add(-time.Second)
+		round := &Round{
+			CurrentTurn:     DirectionEast,
+			CurrentAction:   ActionDraw,
+			Discards:        []Tile{TileBamboo4, TileBamboo3},
+			Hands:           [4]Hand{{Concealed: []Tile{TileWindsWest, TileBamboo1, TileBamboo2}}},
+			PongDuration:    2 * time.Second,
+			LastDiscardTime: oneSecondAgo,
+		}
+		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2, time.Now())
+		assert.EqualError(t, err, "waiting for other players to pong")
 	})
 	t.Run("success", func(t *testing.T) {
 		round := &Round{
@@ -276,7 +294,7 @@ func TestRound_Chow(t *testing.T) {
 			Discards:      []Tile{TileBamboo4, TileBamboo3},
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest, TileBamboo1, TileBamboo2}}},
 		}
-		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2)
+		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2, time.Now())
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileBamboo4}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Hands[DirectionEast].Concealed)
@@ -365,13 +383,31 @@ func TestRound_Peng(t *testing.T) {
 func TestRound_Draw(t *testing.T) {
 	t.Run("wrong turn", func(t *testing.T) {
 		round := &Round{CurrentTurn: DirectionEast}
-		_, _, err := round.Draw(DirectionSouth)
+		_, _, err := round.Draw(DirectionSouth, time.Now())
 		assert.EqualError(t, err, "wrong turn")
 	})
 	t.Run("wrong action", func(t *testing.T) {
 		round := &Round{CurrentAction: ActionDiscard}
-		_, _, err := round.Draw(DirectionEast)
+		_, _, err := round.Draw(DirectionEast, time.Now())
 		assert.EqualError(t, err, "wrong action")
+	})
+	t.Run("cannot draw within pong duration of last discard", func(t *testing.T) {
+		now := time.Now()
+		oneSecondAgo := now.Add(-time.Second)
+		round := &Round{
+			Wall: []Tile{
+				"38八万", "35五万", "27六索", "44红中",
+				"22一索", "34四万", "35五万", "20八筒",
+				"37七万", "13一筒", "43北风", "26五索",
+				"21九筒", "25四索", "42西风", "17五筒",
+			},
+			CurrentTurn:     DirectionEast,
+			CurrentAction:   ActionDraw,
+			PongDuration:    2 * time.Second,
+			LastDiscardTime: oneSecondAgo,
+		}
+		_, _, err := round.Draw(DirectionEast, now)
+		assert.EqualError(t, err, "waiting for other players to pong")
 	})
 	t.Run("cannot draw when less than MinTilesLeft tiles in wall", func(t *testing.T) {
 		round := &Round{
@@ -384,7 +420,7 @@ func TestRound_Draw(t *testing.T) {
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
 		}
-		_, _, err := round.Draw(DirectionEast)
+		_, _, err := round.Draw(DirectionEast, time.Now())
 		assert.EqualError(t, err, "no draws left")
 	})
 	t.Run("success", func(t *testing.T) {
@@ -400,7 +436,7 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		drawn, flowers, err := round.Draw(DirectionEast)
+		drawn, flowers, err := round.Draw(DirectionEast, time.Now())
 		assert.NoError(t, err)
 		assert.Equal(t, TileBamboo1, drawn)
 		assert.Empty(t, flowers)
@@ -422,7 +458,7 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		drawn, flowers, err := round.Draw(DirectionEast)
+		drawn, flowers, err := round.Draw(DirectionEast, time.Now())
 		assert.NoError(t, err)
 		assert.Equal(t, TileBamboo2, drawn)
 		assert.Equal(t, []Tile{TileGentlemen1}, flowers)
@@ -445,7 +481,7 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		drawn, flowers, err := round.Draw(DirectionEast)
+		drawn, flowers, err := round.Draw(DirectionEast, time.Now())
 		assert.NoError(t, err)
 		assert.Equal(t, TileBamboo2, drawn)
 		assert.Equal(t, []Tile{TileGentlemen1, TileGentlemen2}, flowers)
@@ -726,4 +762,11 @@ func TestRound_ViewFromSeat(t *testing.T) {
 		assert.True(t, allEmpty(viewFromNowhere.Hands[DirectionWest].Concealed))
 		assert.True(t, allEmpty(viewFromNowhere.Hands[DirectionNorth].Concealed))
 	})
+}
+
+func TestDurationMillis_MarshalJSON(t *testing.T) {
+	d := durationMillis(time.Second)
+	data, err := json.Marshal(d)
+	assert.NoError(t, err)
+	assert.Equal(t, "1000", string(data))
 }

@@ -158,6 +158,7 @@ func main() {
 				return
 			}
 			room.Round = mahjong.NewRound(rand.Int63())
+			room.Round.PongDuration = 2 * time.Second
 			room.broadcast()
 		})
 		r.GET("/debug/rooms/:id/wall", func(c *gin.Context) {

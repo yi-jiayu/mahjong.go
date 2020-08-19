@@ -4,6 +4,8 @@ import (
 	"errors"
 	"math/rand"
 	"sort"
+	"strconv"
+	"time"
 )
 
 type Tile string
@@ -127,6 +129,13 @@ type Round struct {
 	Hands         [4]Hand
 	CurrentTurn   Direction
 	CurrentAction Action
+
+	// PongDuration is an amount of time after the last discard that is reserved for ponging,
+	// which the next player has to wait before he can draw or chi.
+	PongDuration time.Duration
+
+	// LastDiscardTime is the time of the last discard.
+	LastDiscardTime time.Time
 }
 
 type MeldType int
@@ -275,7 +284,7 @@ func removeTile(tiles []Tile, tile Tile) ([]Tile, bool) {
 	return tiles, removedCount > 0
 }
 
-func (r *Round) Discard(seat Direction, tile Tile) error {
+func (r *Round) Discard(seat Direction, tile Tile, t time.Time) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
 	}
@@ -293,6 +302,7 @@ func (r *Round) Discard(seat Direction, tile Tile) error {
 	r.Discards = append(r.Discards, tile)
 	r.CurrentTurn = (seat + 1) % 4
 	r.CurrentAction = ActionDraw
+	r.LastDiscardTime = t
 	return nil
 }
 
@@ -308,12 +318,15 @@ func validSequence(seq [3]Tile) bool {
 	return false
 }
 
-func (r *Round) Chow(seat Direction, tile1, tile2 Tile) error {
+func (r *Round) Chow(seat Direction, tile1, tile2 Tile, t time.Time) error {
 	if r.CurrentTurn != seat {
 		return errors.New("not your turn")
 	}
 	if r.CurrentAction != ActionDraw {
 		return errors.New("not time to chow")
+	}
+	if !t.After(r.LastDiscardTime.Add(r.PongDuration)) {
+		return errors.New("waiting for other players to pong")
 	}
 	if !contains(r.Hands[seat].Concealed, tile1) || !contains(r.Hands[seat].Concealed, tile2) {
 		return errors.New("no such tile")
@@ -363,7 +376,7 @@ func (r *Round) Peng(seat Direction, tile Tile) error {
 }
 
 // Draw draws a new tile for seat and returns the drawn tile and any flowers drawn in the process.
-func (r *Round) Draw(seat Direction) (Tile, []Tile, error) {
+func (r *Round) Draw(seat Direction, t time.Time) (Tile, []Tile, error) {
 	if r.CurrentTurn != seat {
 		return "", nil, errors.New("wrong turn")
 	}
@@ -372,6 +385,9 @@ func (r *Round) Draw(seat Direction) (Tile, []Tile, error) {
 	}
 	if len(r.Wall) < MinTilesLeft {
 		return "", nil, errors.New("no draws left")
+	}
+	if !t.After(r.LastDiscardTime.Add(r.PongDuration)) {
+		return "", nil, errors.New("waiting for other players to pong")
 	}
 	var draw Tile
 	flowers := make([]Tile, 0)
@@ -530,13 +546,22 @@ func (r *Round) EndGame(seat Direction) error {
 	return errors.New("not allowed")
 }
 
+// durationMillis is a custom type to facilitate marshalling a time.Duration to JSON.
+type durationMillis time.Duration
+
+func (d durationMillis) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Itoa(int(time.Duration(d) / time.Millisecond))), nil
+}
+
 // RoundView represents a view of a round with non-public information removed.
 type RoundView struct {
-	DrawsLeft     int       `json:"draws_left"`
-	Discards      []Tile    `json:"discards"`
-	Hands         [4]Hand   `json:"hands"`
-	CurrentTurn   Direction `json:"current_turn"`
-	CurrentAction Action    `json:"current_action"`
+	DrawsLeft       int            `json:"draws_left"`
+	Discards        []Tile         `json:"discards"`
+	Hands           [4]Hand        `json:"hands"`
+	CurrentTurn     Direction      `json:"current_turn"`
+	CurrentAction   Action         `json:"current_action"`
+	PongDuration    durationMillis `json:"pong_duration"`
+	LastDiscardTime time.Time      `json:"last_discard_time"`
 }
 
 // ViewFromSeat returns a RoundView from a specific seat.
@@ -550,11 +575,13 @@ func (r *Round) ViewFromSeat(seat Direction) RoundView {
 		}
 	}
 	return RoundView{
-		DrawsLeft:     len(r.Wall) - MinTilesLeft + 1,
-		Discards:      r.Discards,
-		Hands:         hands,
-		CurrentTurn:   r.CurrentTurn,
-		CurrentAction: r.CurrentAction,
+		DrawsLeft:       len(r.Wall) - MinTilesLeft + 1,
+		Discards:        r.Discards,
+		Hands:           hands,
+		CurrentTurn:     r.CurrentTurn,
+		CurrentAction:   r.CurrentAction,
+		PongDuration:    durationMillis(r.PongDuration),
+		LastDiscardTime: r.LastDiscardTime,
 	}
 }
 
