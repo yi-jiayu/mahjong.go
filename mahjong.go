@@ -550,7 +550,7 @@ func (r *Round) EndGame(seat Direction) error {
 type durationMillis time.Duration
 
 func (d durationMillis) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Itoa(int(time.Duration(d) / time.Millisecond))), nil
+	return []byte(strconv.Itoa(int(time.Duration(d).Milliseconds()))), nil
 }
 
 // RoundView represents a view of a round with non-public information removed.
@@ -561,7 +561,7 @@ type RoundView struct {
 	CurrentTurn     Direction      `json:"current_turn"`
 	CurrentAction   Action         `json:"current_action"`
 	PongDuration    durationMillis `json:"pong_duration"`
-	LastDiscardTime time.Time      `json:"last_discard_time"`
+	LastDiscardTime int64          `json:"last_discard_time"`
 }
 
 // ViewFromSeat returns a RoundView from a specific seat.
@@ -581,7 +581,7 @@ func (r *Round) ViewFromSeat(seat Direction) RoundView {
 		CurrentTurn:     r.CurrentTurn,
 		CurrentAction:   r.CurrentAction,
 		PongDuration:    durationMillis(r.PongDuration),
-		LastDiscardTime: r.LastDiscardTime,
+		LastDiscardTime: r.LastDiscardTime.UnixNano() / 1e6,
 	}
 }
 
