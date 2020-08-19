@@ -325,7 +325,7 @@ func (r *Round) Chow(seat Direction, tile1, tile2 Tile, t time.Time) error {
 	if r.CurrentAction != ActionDraw {
 		return errors.New("not time to chow")
 	}
-	if !t.After(r.LastDiscardTime.Add(r.PongDuration)) {
+	if t.Before(r.LastDiscardTime.Add(r.PongDuration)) {
 		return errors.New("waiting for other players to pong")
 	}
 	if !contains(r.Hands[seat].Concealed, tile1) || !contains(r.Hands[seat].Concealed, tile2) {
@@ -386,7 +386,7 @@ func (r *Round) Draw(seat Direction, t time.Time) (Tile, []Tile, error) {
 	if len(r.Wall) < MinTilesLeft {
 		return "", nil, errors.New("no draws left")
 	}
-	if !t.After(r.LastDiscardTime.Add(r.PongDuration)) {
+	if t.Before(r.LastDiscardTime.Add(r.PongDuration)) {
 		return "", nil, errors.New("waiting for other players to pong")
 	}
 	var draw Tile
