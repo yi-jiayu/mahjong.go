@@ -2,7 +2,8 @@ package main
 
 import (
 	"bytes"
-	"encoding/gob"
+	crypto "crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"math/rand"
@@ -17,6 +18,25 @@ const (
 	PhaseInProgress
 	PhaseRoundOver
 )
+
+var botNames = []string{
+	"Agnes",
+	"Ester",
+	"Harriet",
+	"Lupe",
+	"Mordecai",
+}
+
+func newPlayerID() string {
+	b := make([]byte, 8)
+	crypto.Read(b)
+	return hex.EncodeToString(b)
+}
+
+type Player struct {
+	id   string
+	Name string `json:"name"`
+}
 
 // Result represents the result of a round.
 type Result struct {
@@ -36,7 +56,7 @@ type Room struct {
 	ID      string
 	Nonce   int
 	Phase   int
-	Players []string
+	Players []Player
 	Round   *mahjong.Round
 
 	// CurrentDealer is the integer offset of the current dealer in the players array.
@@ -66,8 +86,8 @@ type RoomView struct {
 }
 
 func (r *Room) seat(playerID string) int {
-	for i, id := range r.Players {
-		if id == playerID {
+	for i, p := range r.Players {
+		if p.id == playerID {
 			return (i - r.CurrentDealer + 4) % 4
 		}
 	}
@@ -77,13 +97,8 @@ func (r *Room) seat(playerID string) int {
 func (r *Room) ViewAs(playerID string) RoomView {
 	seat := r.seat(playerID)
 	players := make([]string, len(r.Players))
-	for i, playerID := range r.Players {
-		player, err := playerRepository.Get(playerID)
-		if err != nil {
-			players[(i-r.CurrentDealer+4)%4] = "Unknown player"
-		} else {
-			players[(i-r.CurrentDealer+4)%4] = player.Name
-		}
+	for i, player := range r.Players {
+		players[(i-r.CurrentDealer+4)%4] = player.Name
 	}
 	view := RoomView{
 		Seat:           mahjong.Direction(seat),
@@ -100,50 +115,9 @@ func (r *Room) ViewAs(playerID string) RoomView {
 	return view
 }
 
-func (r *Room) UnmarshalBinary(data []byte) error {
-	rdr := bytes.NewReader(data)
-	dec := gob.NewDecoder(rdr)
-	var room struct {
-		Nonce   int
-		Phase   int
-		Players []string
-		Round   *mahjong.Round
-	}
-	err := dec.Decode(&room)
-	if err != nil {
-		return err
-	}
-	r.Nonce = room.Nonce
-	r.Phase = room.Phase
-	r.Players = room.Players
-	r.Round = room.Round
-	r.clients = map[chan string]string{}
-	return nil
-}
-
-func (r *Room) MarshalBinary() ([]byte, error) {
-	var b bytes.Buffer
-	enc := gob.NewEncoder(&b)
-	err := enc.Encode(struct {
-		Nonce   int
-		Phase   int
-		Players []string
-		Round   *mahjong.Round
-	}{
-		Nonce:   r.Nonce,
-		Phase:   r.Phase,
-		Players: r.Players,
-		Round:   r.Round,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
-}
-
-func NewRoom(host string) *Room {
+func NewRoom(id, name string) *Room {
 	return &Room{
-		Players: []string{host},
+		Players: []Player{{id: id, Name: name}},
 		clients: map[chan string]string{},
 	}
 }
@@ -160,32 +134,35 @@ func (r *Room) AddClient(playerID string, c chan string) {
 	}()
 }
 
-func (r *Room) addPlayer(id string) error {
+func (r *Room) addPlayer(id, name string) error {
 	if len(r.Players) == 4 {
 		return errors.New("room full")
 	}
 	for _, p := range r.Players {
-		if p == id {
+		if p.id == id {
 			return nil
 		}
 	}
-	r.Players = append(r.Players, id)
+	r.Players = append(r.Players, Player{
+		id:   id,
+		Name: name,
+	})
 	r.broadcast()
 	return nil
 }
 
-func (r *Room) AddPlayer(id string) error {
+func (r *Room) AddPlayer(id, name string) error {
 	r.Lock()
 	defer r.Unlock()
-	return r.addPlayer(id)
+	return r.addPlayer(id, name)
 }
 
 func (r *Room) AddBot(playerID string, bot *Bot) error {
 	r.Lock()
 	defer r.Unlock()
 	found := false
-	for _, id := range r.Players {
-		if id == playerID {
+	for _, p := range r.Players {
+		if p.id == playerID {
 			found = true
 			break
 		}
@@ -193,7 +170,20 @@ func (r *Room) AddBot(playerID string, bot *Bot) error {
 	if !found {
 		return errors.New("not allowed")
 	}
-	err := r.addPlayer(bot.ID)
+	var name string
+	for _, n := range botNames {
+		found := false
+		for _, p := range r.Players {
+			if n == p.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			name = n + " Bot"
+		}
+	}
+	err := r.addPlayer(bot.ID, name)
 	if err != nil {
 		return err
 	}

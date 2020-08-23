@@ -15,12 +15,9 @@ type Bot struct {
 }
 
 func NewBot(roomID string) *Bot {
-	p := Player{
-		NamePrefix: "bot",
-	}
-	_ = playerRepository.Insert(&p)
+	id := newPlayerID()
 	return &Bot{
-		ID:          p.ID,
+		ID:          id,
 		RoomID:      roomID,
 		GameUpdates: make(chan string),
 	}

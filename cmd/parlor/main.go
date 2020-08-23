@@ -15,12 +15,23 @@ import (
 )
 
 var (
-	playerRepository PlayerRepository = NewInMemoryPlayerRepository()
-	roomRepository   RoomRepository   = NewInMemoryRoomRepository()
+	roomRepository RoomRepository = NewInMemoryRoomRepository()
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+func getPlayerID(sess sessions.Session) string {
+	id := sess.Get("id")
+	if id != nil {
+		return ""
+	}
+	playerID, ok := id.(string)
+	if !ok {
+		return ""
+	}
+	return playerID
 }
 
 func main() {
@@ -33,31 +44,23 @@ func main() {
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,
 		})
-		var playerID string
-		id := session.Get("id")
-		if id != nil {
-			if s, ok := id.(string); ok {
-				playerID = s
-			}
+		playerID := getPlayerID(session)
+		if playerID == "" {
+			playerID = newPlayerID()
+			session.Set("id", playerID)
 		}
-		var player Player
-		var err error
-		player, err = playerRepository.Get(playerID)
-		if err != nil {
-			_ = playerRepository.Insert(&player)
-			session.Set("id", player.ID)
-		}
-		c.Set("player", player)
+		c.Set("id", playerID)
 		session.Save()
 		c.Next()
 	})
-	r.GET("/self", func(c *gin.Context) {
-		player := c.MustGet("player").(Player)
-		c.JSON(http.StatusOK, player)
-	})
 	r.POST("/rooms", func(c *gin.Context) {
-		player := c.MustGet("player").(Player)
-		room := NewRoom(player.ID)
+		playerID := c.GetString("id")
+		name := c.PostForm("name")
+		if name == "" {
+			c.String(http.StatusBadRequest, "id is required")
+			return
+		}
+		room := NewRoom(playerID, name)
 		roomID, _ := roomRepository.Insert(room)
 		c.JSON(http.StatusOK, map[string]string{
 			"room_id": roomID,
@@ -79,9 +82,9 @@ func main() {
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 
-		player := c.MustGet("player").(Player)
+		playerID := c.GetString("id")
 		ch := make(chan string)
-		room.AddClient(player.ID, ch)
+		room.AddClient(playerID, ch)
 
 		// Remove this client from the map of connected clients
 		// when this handler exits.
@@ -106,8 +109,13 @@ func main() {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		player := c.MustGet("player").(Player)
-		err := room.AddPlayer(player.ID)
+		name := c.PostForm("name")
+		if name == "" {
+			c.String(http.StatusBadRequest, "id is required")
+			return
+		}
+		playerID := c.GetString("id")
+		err := room.AddPlayer(playerID, name)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
@@ -119,9 +127,9 @@ func main() {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		player := c.MustGet("player").(Player)
+		playerID := c.GetString("id")
 		bot := NewBot(room.ID)
-		err := room.AddBot(player.ID, bot)
+		err := room.AddBot(playerID, bot)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 		}
@@ -133,13 +141,13 @@ func main() {
 			c.String(http.StatusNotFound, "Not Found")
 			return
 		}
-		player := c.MustGet("player").(Player)
+		playerID := c.GetString("id")
 		var action Action
 		if err := c.ShouldBindJSON(&action); err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		result, err := room.HandleAction(player.ID, action)
+		result, err := room.HandleAction(playerID, action)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
