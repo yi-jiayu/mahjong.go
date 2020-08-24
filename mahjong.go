@@ -123,6 +123,23 @@ func (h Hand) Masked() Hand {
 	}
 }
 
+type EventType string
+
+const (
+	EventDraw    EventType = "draw"
+	EventDiscard EventType = "discard"
+	EventChi     EventType = "chi"
+	EventPong    EventType = "pong"
+	EventGang    EventType = "gang"
+)
+
+type Event struct {
+	Type  EventType `json:"type"`
+	Seat  Direction `json:"seat"`
+	Time  time.Time `json:"time"`
+	Tiles []Tile    `json:"tiles"`
+}
+
 type Round struct {
 	Wall          []Tile
 	Discards      []Tile
@@ -136,6 +153,9 @@ type Round struct {
 
 	// LastDiscardTime is the time of the last discard.
 	LastDiscardTime time.Time
+
+	// Events describes everything that happened this round.
+	Events []Event
 }
 
 type MeldType int
@@ -303,6 +323,12 @@ func (r *Round) Discard(seat Direction, tile Tile, t time.Time) error {
 	r.CurrentTurn = (seat + 1) % 4
 	r.CurrentAction = ActionDraw
 	r.LastDiscardTime = t
+	r.Events = append(r.Events, Event{
+		Type:  EventDiscard,
+		Seat:  seat,
+		Time:  t,
+		Tiles: []Tile{tile},
+	})
 	return nil
 }
 
@@ -340,6 +366,12 @@ func (r *Round) Chow(seat Direction, tile1, tile2 Tile, t time.Time) error {
 	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, seq[:])
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
+	r.Events = append(r.Events, Event{
+		Type:  EventChi,
+		Seat:  seat,
+		Time:  t,
+		Tiles: seq[:],
+	})
 	return nil
 }
 
@@ -372,6 +404,11 @@ func (r *Round) Peng(seat Direction, tile Tile) error {
 	r.Discards = r.Discards[:len(r.Discards)-1]
 	r.CurrentAction = ActionDiscard
 	r.CurrentTurn = seat
+	r.Events = append(r.Events, Event{
+		Type:  EventPong,
+		Seat:  seat,
+		Tiles: []Tile{tile},
+	})
 	return nil
 }
 
@@ -399,6 +436,12 @@ func (r *Round) Draw(seat Direction, t time.Time) (Tile, []Tile, error) {
 	}
 	r.Hands[seat].Concealed = append(r.Hands[seat].Concealed, draw)
 	r.CurrentAction = ActionDiscard
+	r.Events = append(r.Events, Event{
+		Type:  EventDraw,
+		Seat:  seat,
+		Time:  t,
+		Tiles: flowers,
+	})
 	return draw, flowers, nil
 }
 
@@ -440,6 +483,11 @@ func (r *Round) Kong(seat Direction, tile Tile) (Tile, []Tile, error) {
 		drawn, flowers := r.drawFlower(seat)
 		r.CurrentAction = ActionDiscard
 		r.CurrentTurn = seat
+		r.Events = append(r.Events, Event{
+			Type:  EventGang,
+			Seat:  seat,
+			Tiles: append([]Tile{tile}, flowers...),
+		})
 		return drawn, flowers, nil
 	}
 	if r.CurrentTurn == seat && r.CurrentAction == ActionDiscard {
@@ -447,12 +495,22 @@ func (r *Round) Kong(seat Direction, tile Tile) (Tile, []Tile, error) {
 			r.Hands[seat].Concealed, _ = removeTile(r.Hands[seat].Concealed, tile)
 			r.Hands[seat].Revealed[i] = append(r.Hands[seat].Revealed[i], tile)
 			drawn, flowers := r.drawFlower(seat)
+			r.Events = append(r.Events, Event{
+				Type:  EventGang,
+				Seat:  seat,
+				Tiles: append([]Tile{tile}, flowers...),
+			})
 			return drawn, flowers, nil
 		}
 		if countTiles(r.Hands[seat].Concealed, tile) >= 4 {
 			r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 4)
 			r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, []Tile{tile, tile, tile, tile})
 			drawn, flowers := r.drawFlower(seat)
+			r.Events = append(r.Events, Event{
+				Type:  EventGang,
+				Seat:  seat,
+				Tiles: append([]Tile{tile}, flowers...),
+			})
 			return drawn, flowers, nil
 		}
 	}
@@ -562,6 +620,7 @@ type RoundView struct {
 	CurrentAction   Action         `json:"current_action"`
 	PongDuration    durationMillis `json:"pong_duration"`
 	LastDiscardTime int64          `json:"last_discard_time"`
+	Events          []Event        `json:"events"`
 }
 
 // ViewFromSeat returns a RoundView from a specific seat.
@@ -582,6 +641,7 @@ func (r *Round) ViewFromSeat(seat Direction) RoundView {
 		CurrentAction:   r.CurrentAction,
 		PongDuration:    durationMillis(r.PongDuration),
 		LastDiscardTime: r.LastDiscardTime.UnixNano() / 1e6,
+		Events:          r.Events,
 	}
 }
 
@@ -595,5 +655,6 @@ func NewRound(seed int64) *Round {
 		Hands:         hands,
 		CurrentTurn:   DirectionEast,
 		CurrentAction: ActionDiscard,
+		Events:        []Event{},
 	}
 }

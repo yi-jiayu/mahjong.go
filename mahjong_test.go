@@ -240,6 +240,12 @@ func TestRound_Discard(t *testing.T) {
 		assert.Equal(t, DirectionSouth, round.CurrentTurn)
 		assert.Equal(t, ActionDraw, round.CurrentAction)
 		assert.Equal(t, now, round.LastDiscardTime)
+		assert.Equal(t, []Event{{
+			Type:  EventDiscard,
+			Seat:  DirectionEast,
+			Time:  now,
+			Tiles: []Tile{TileWindsEast},
+		}}, round.Events)
 	})
 }
 
@@ -288,19 +294,26 @@ func TestRound_Chow(t *testing.T) {
 		assert.EqualError(t, err, "waiting for other players to pong")
 	})
 	t.Run("success", func(t *testing.T) {
+		now := time.Now()
 		round := &Round{
 			CurrentTurn:   DirectionEast,
 			CurrentAction: ActionDraw,
 			Discards:      []Tile{TileBamboo4, TileBamboo3},
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest, TileBamboo1, TileBamboo2}}},
 		}
-		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2, time.Now())
+		err := round.Chow(DirectionEast, TileBamboo1, TileBamboo2, now)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileBamboo4}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Hands[DirectionEast].Concealed)
 		assert.Equal(t, [][]Tile{{TileBamboo1, TileBamboo2, TileBamboo3}}, round.Hands[DirectionEast].Revealed)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventChi,
+			Seat:  DirectionEast,
+			Time:  now,
+			Tiles: []Tile{TileBamboo1, TileBamboo2, TileBamboo3},
+		}}, round.Events)
 	})
 }
 
@@ -377,6 +390,11 @@ func TestRound_Peng(t *testing.T) {
 		assert.Equal(t, [][]Tile{{TileBamboo4, TileBamboo4, TileBamboo4}}, round.Hands[DirectionSouth].Revealed)
 		assert.Equal(t, DirectionSouth, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventPong,
+			Seat:  DirectionSouth,
+			Tiles: []Tile{TileBamboo4},
+		}}, round.Events)
 	})
 }
 
@@ -436,7 +454,8 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		drawn, flowers, err := round.Draw(DirectionEast, time.Now())
+		now := time.Now()
+		drawn, flowers, err := round.Draw(DirectionEast, now)
 		assert.NoError(t, err)
 		assert.Equal(t, TileBamboo1, drawn)
 		assert.Empty(t, flowers)
@@ -447,6 +466,12 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, []Tile{TileWindsWest, TileBamboo1}, round.Hands[DirectionEast].Concealed)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventDraw,
+			Seat:  DirectionEast,
+			Time:  now,
+			Tiles: flowers,
+		}}, round.Events)
 	})
 	t.Run("drawing flower", func(t *testing.T) {
 		round := &Round{
@@ -458,7 +483,8 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		drawn, flowers, err := round.Draw(DirectionEast, time.Now())
+		now := time.Now()
+		drawn, flowers, err := round.Draw(DirectionEast, now)
 		assert.NoError(t, err)
 		assert.Equal(t, TileBamboo2, drawn)
 		assert.Equal(t, []Tile{TileGentlemen1}, flowers)
@@ -470,6 +496,12 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, []Tile{TileGentlemen1}, round.Hands[DirectionEast].Flowers)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventDraw,
+			Seat:  DirectionEast,
+			Time:  now,
+			Tiles: []Tile{TileGentlemen1},
+		}}, round.Events)
 	})
 	t.Run("drawing flower again", func(t *testing.T) {
 		round := &Round{
@@ -481,7 +513,8 @@ func TestRound_Draw(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileWindsWest}}},
 		}
-		drawn, flowers, err := round.Draw(DirectionEast, time.Now())
+		now := time.Now()
+		drawn, flowers, err := round.Draw(DirectionEast, now)
 		assert.NoError(t, err)
 		assert.Equal(t, TileBamboo2, drawn)
 		assert.Equal(t, []Tile{TileGentlemen1, TileGentlemen2}, flowers)
@@ -493,6 +526,12 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, []Tile{TileGentlemen1, TileGentlemen2}, round.Hands[DirectionEast].Flowers)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventDraw,
+			Seat:  DirectionEast,
+			Time:  now,
+			Tiles: []Tile{TileGentlemen1, TileGentlemen2},
+		}}, round.Events)
 	})
 }
 
@@ -523,6 +562,11 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, [][]Tile{{TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1}}, round.Hands[DirectionEast].Revealed)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventGang,
+			Seat:  DirectionEast,
+			Tiles: []Tile{TileBamboo1},
+		}}, round.Events)
 	})
 	t.Run("tiles exposed, tile from hand - exposed kong", func(t *testing.T) {
 		round := &Round{
@@ -544,6 +588,11 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, [][]Tile{{TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1}}, round.Hands[DirectionEast].Revealed)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventGang,
+			Seat:  DirectionEast,
+			Tiles: []Tile{TileBamboo1},
+		}}, round.Events)
 	})
 	t.Run("tiles concealed, tile from hand - hidden kong", func(t *testing.T) {
 		round := &Round{
@@ -564,6 +613,11 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, [][]Tile{{TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1}}, round.Hands[DirectionEast].Revealed)
 		assert.Equal(t, DirectionEast, round.CurrentTurn)
 		assert.Equal(t, ActionDiscard, round.CurrentAction)
+		assert.Equal(t, []Event{{
+			Type:  EventGang,
+			Seat:  DirectionEast,
+			Tiles: []Tile{TileBamboo1},
+		}}, round.Events)
 	})
 	t.Run("drawing flower after kong", func(t *testing.T) {
 		round := &Round{
@@ -584,6 +638,11 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
 		assert.Equal(t, []Tile{TileCat}, round.Hands[DirectionEast].Flowers)
 		assert.Equal(t, []Tile{TileCharacters1, TileWindsWest, TileWindsEast}, round.Hands[DirectionEast].Concealed)
+		assert.Equal(t, []Event{{
+			Type:  EventGang,
+			Seat:  DirectionEast,
+			Tiles: []Tile{TileBamboo1, TileCat},
+		}}, round.Events)
 	})
 }
 
