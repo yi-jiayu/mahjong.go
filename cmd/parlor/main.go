@@ -24,7 +24,7 @@ func init() {
 
 func getPlayerID(sess sessions.Session) string {
 	id := sess.Get("id")
-	if id != nil {
+	if id == nil {
 		return ""
 	}
 	playerID, ok := id.(string)
@@ -57,7 +57,7 @@ func main() {
 		playerID := c.GetString("id")
 		name := c.PostForm("name")
 		if name == "" {
-			c.String(http.StatusBadRequest, "id is required")
+			c.String(http.StatusBadRequest, "name is required")
 			return
 		}
 		room := NewRoom(playerID, name)
@@ -111,7 +111,7 @@ func main() {
 		}
 		name := c.PostForm("name")
 		if name == "" {
-			c.String(http.StatusBadRequest, "id is required")
+			c.String(http.StatusBadRequest, "name is required")
 			return
 		}
 		playerID := c.GetString("id")

@@ -20,11 +20,11 @@ const (
 )
 
 var botNames = []string{
-	"Agnes",
-	"Ester",
-	"Harriet",
-	"Lupe",
-	"Mordecai",
+	"Agnes Bot",
+	"Ester Bot",
+	"Harriet Bot",
+	"Lupe Bot",
+	"Mordecai Bot",
 }
 
 func newPlayerID() string {
@@ -76,6 +76,7 @@ type Room struct {
 
 // RoomView represents a specific player or bystander's view of the room.
 type RoomView struct {
+	ID             string             `json:"id"`
 	Seat           mahjong.Direction  `json:"seat"`
 	Nonce          int                `json:"nonce"`
 	Phase          int                `json:"phase"`
@@ -101,6 +102,7 @@ func (r *Room) ViewAs(playerID string) RoomView {
 		players[(i-r.CurrentDealer+4)%4] = player.Name
 	}
 	view := RoomView{
+		ID:             r.ID,
 		Seat:           mahjong.Direction(seat),
 		Nonce:          r.Nonce,
 		Phase:          r.Phase,
@@ -117,6 +119,7 @@ func (r *Room) ViewAs(playerID string) RoomView {
 
 func NewRoom(id, name string) *Room {
 	return &Room{
+		ID:      id,
 		Players: []Player{{id: id, Name: name}},
 		clients: map[chan string]string{},
 	}
@@ -180,7 +183,8 @@ func (r *Room) AddBot(playerID string, bot *Bot) error {
 			}
 		}
 		if !found {
-			name = n + " Bot"
+			name = n
+			break
 		}
 	}
 	err := r.addPlayer(bot.ID, name)
