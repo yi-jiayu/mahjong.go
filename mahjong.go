@@ -389,7 +389,7 @@ func countTiles(tiles []Tile, tile Tile) int {
 	return count
 }
 
-func (r *Round) Peng(seat Direction, tile Tile) error {
+func (r *Round) Peng(seat Direction, tile Tile, t time.Time) error {
 	if seat == r.PreviousTurn() {
 		return errors.New("wrong turn")
 	}
@@ -407,6 +407,7 @@ func (r *Round) Peng(seat Direction, tile Tile) error {
 	r.Events = append(r.Events, Event{
 		Type:  EventPong,
 		Seat:  seat,
+		Time:  t,
 		Tiles: []Tile{tile},
 	})
 	return nil
@@ -475,7 +476,7 @@ func (r *Round) drawFlower(seat Direction) (Tile, []Tile) {
 	}
 }
 
-func (r *Round) Kong(seat Direction, tile Tile) (Tile, []Tile, error) {
+func (r *Round) Kong(seat Direction, tile Tile, t time.Time) (Tile, []Tile, error) {
 	if r.CurrentAction == ActionDraw && seat != r.PreviousTurn() && countTiles(r.Hands[seat].Concealed, tile) == 3 && r.lastDiscard() == tile {
 		r.Discards = r.Discards[:len(r.Discards)-1]
 		r.Hands[seat].Concealed, _ = removeTiles(r.Hands[seat].Concealed, tile, 3)
@@ -486,6 +487,7 @@ func (r *Round) Kong(seat Direction, tile Tile) (Tile, []Tile, error) {
 		r.Events = append(r.Events, Event{
 			Type:  EventGang,
 			Seat:  seat,
+			Time:  t,
 			Tiles: append([]Tile{tile}, flowers...),
 		})
 		return drawn, flowers, nil
@@ -498,6 +500,7 @@ func (r *Round) Kong(seat Direction, tile Tile) (Tile, []Tile, error) {
 			r.Events = append(r.Events, Event{
 				Type:  EventGang,
 				Seat:  seat,
+				Time:  t,
 				Tiles: append([]Tile{tile}, flowers...),
 			})
 			return drawn, flowers, nil
@@ -509,6 +512,7 @@ func (r *Round) Kong(seat Direction, tile Tile) (Tile, []Tile, error) {
 			r.Events = append(r.Events, Event{
 				Type:  EventGang,
 				Seat:  seat,
+				Time:  t,
 				Tiles: append([]Tile{tile}, flowers...),
 			})
 			return drawn, flowers, nil

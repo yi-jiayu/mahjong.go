@@ -350,12 +350,12 @@ func Test_validSequence(t *testing.T) {
 func TestRound_Peng(t *testing.T) {
 	t.Run("wrong turn", func(t *testing.T) {
 		round := &Round{CurrentTurn: DirectionEast}
-		err := round.Peng(DirectionNorth, "")
+		err := round.Peng(DirectionNorth, "", time.Now())
 		assert.EqualError(t, err, "wrong turn")
 	})
 	t.Run("wrong action", func(t *testing.T) {
 		round := &Round{CurrentAction: ActionDiscard}
-		err := round.Peng(DirectionEast, "")
+		err := round.Peng(DirectionEast, "", time.Now())
 		assert.EqualError(t, err, "wrong action")
 	})
 	t.Run("no such tile", func(t *testing.T) {
@@ -364,7 +364,7 @@ func TestRound_Peng(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{}},
 		}
-		err := round.Peng(DirectionEast, TileBamboo1)
+		err := round.Peng(DirectionEast, TileBamboo1, time.Now())
 		assert.EqualError(t, err, "not enough tiles")
 	})
 	t.Run("not enough tiles", func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestRound_Peng(t *testing.T) {
 			CurrentAction: ActionDraw,
 			Hands:         [4]Hand{{Concealed: []Tile{TileBamboo1}}},
 		}
-		err := round.Peng(DirectionEast, TileBamboo1)
+		err := round.Peng(DirectionEast, TileBamboo1, time.Now())
 		assert.EqualError(t, err, "not enough tiles")
 	})
 	t.Run("success", func(t *testing.T) {
@@ -383,7 +383,8 @@ func TestRound_Peng(t *testing.T) {
 			Discards:      []Tile{TileBamboo4, TileBamboo4},
 			Hands:         [4]Hand{{}, {Concealed: []Tile{TileWindsWest, TileBamboo4, TileBamboo4}}},
 		}
-		err := round.Peng(DirectionSouth, TileBamboo4)
+		now := time.Now()
+		err := round.Peng(DirectionSouth, TileBamboo4, now)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileBamboo4}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Hands[DirectionSouth].Concealed)
@@ -393,6 +394,7 @@ func TestRound_Peng(t *testing.T) {
 		assert.Equal(t, []Event{{
 			Type:  EventPong,
 			Seat:  DirectionSouth,
+			Time:  now,
 			Tiles: []Tile{TileBamboo4},
 		}}, round.Events)
 	})
@@ -543,7 +545,7 @@ func TestRound_Kong(t *testing.T) {
 			Discards:      []Tile{TileBamboo1},
 			Hands:         [4]Hand{{Revealed: [][]Tile{{TileBamboo1, TileBamboo1, TileBamboo1}}}},
 		}
-		_, _, err := round.Kong(DirectionEast, TileBamboo1)
+		_, _, err := round.Kong(DirectionEast, TileBamboo1, time.Now())
 		assert.EqualError(t, err, "not allowed")
 	})
 	t.Run("tiles concealed, tile from discards - exposed kong", func(t *testing.T) {
@@ -554,7 +556,8 @@ func TestRound_Kong(t *testing.T) {
 			Discards:      []Tile{TileDragonsRed, TileBamboo1},
 			Hands:         [4]Hand{{Concealed: []Tile{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}}},
 		}
-		_, _, err := round.Kong(DirectionEast, TileBamboo1)
+		now := time.Now()
+		_, _, err := round.Kong(DirectionEast, TileBamboo1, now)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
@@ -565,6 +568,7 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, []Event{{
 			Type:  EventGang,
 			Seat:  DirectionEast,
+			Time:  now,
 			Tiles: []Tile{TileBamboo1},
 		}}, round.Events)
 	})
@@ -580,7 +584,8 @@ func TestRound_Kong(t *testing.T) {
 					Concealed: []Tile{TileCharacters1, TileBamboo1, TileWindsWest}},
 			},
 		}
-		_, _, err := round.Kong(DirectionEast, TileBamboo1)
+		now := time.Now()
+		_, _, err := round.Kong(DirectionEast, TileBamboo1, now)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
@@ -591,6 +596,7 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, []Event{{
 			Type:  EventGang,
 			Seat:  DirectionEast,
+			Time:  now,
 			Tiles: []Tile{TileBamboo1},
 		}}, round.Events)
 	})
@@ -605,7 +611,8 @@ func TestRound_Kong(t *testing.T) {
 					Concealed: []Tile{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}},
 			},
 		}
-		_, _, err := round.Kong(DirectionEast, TileBamboo1)
+		now := time.Now()
+		_, _, err := round.Kong(DirectionEast, TileBamboo1, now)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, round.Discards)
 		assert.Equal(t, []Tile{TileWindsWest}, round.Wall)
@@ -616,6 +623,7 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, []Event{{
 			Type:  EventGang,
 			Seat:  DirectionEast,
+			Time:  now,
 			Tiles: []Tile{TileBamboo1},
 		}}, round.Events)
 	})
@@ -630,7 +638,8 @@ func TestRound_Kong(t *testing.T) {
 					Concealed: []Tile{TileCharacters1, TileBamboo1, TileBamboo1, TileBamboo1, TileBamboo1, TileWindsWest}},
 			},
 		}
-		drawn, flowers, err := round.Kong(DirectionEast, TileBamboo1)
+		now := time.Now()
+		drawn, flowers, err := round.Kong(DirectionEast, TileBamboo1, now)
 		assert.NoError(t, err)
 		assert.Equal(t, TileWindsEast, drawn)
 		assert.Equal(t, []Tile{TileCat}, flowers)
@@ -641,6 +650,7 @@ func TestRound_Kong(t *testing.T) {
 		assert.Equal(t, []Event{{
 			Type:  EventGang,
 			Seat:  DirectionEast,
+			Time:  now,
 			Tiles: []Tile{TileBamboo1, TileCat},
 		}}, round.Events)
 	})
