@@ -8,9 +8,6 @@ type Event interface {
 	Redo(r *Round)
 }
 
-// Tile represents a mahjong tile.
-type Tile string
-
 // MeldType represents the type of a melded set.
 type MeldType string
 
@@ -28,11 +25,57 @@ type Meld struct {
 	Tiles []Tile
 }
 
+type TileBag map[Tile]int
+
+func (b TileBag) Contains(tile Tile) bool {
+	return b[tile] > 0
+}
+
+func (b TileBag) Count(tile Tile) int {
+	return b[tile]
+}
+
+func (b TileBag) Add(tile Tile) {
+	b[tile]++
+}
+
+func (b TileBag) Remove(tile Tile) bool {
+	if b[tile] == 0 {
+		return false
+	}
+	if b[tile] == 1 {
+		delete(b, tile)
+	} else {
+		b[tile]--
+	}
+	return true
+}
+
+func (b TileBag) RemoveN(tile Tile, n int) bool {
+	if b[tile] < n {
+		return false
+	}
+	if b[tile] == n {
+		delete(b, tile)
+	} else {
+		b[tile] -= n
+	}
+	return true
+}
+
+func NewTileBag(tiles []Tile) TileBag {
+	b := TileBag{}
+	for _, tile := range tiles {
+		b[tile]++
+	}
+	return b
+}
+
 // Hand represents all the tiles belonging to a player.
 type Hand struct {
 	Flowers   []Tile
 	Revealed  []Meld
-	Concealed []Tile
+	Concealed TileBag
 }
 
 // Player represents a participant in a mahjong game.
@@ -93,34 +136,4 @@ type Game struct {
 
 	CurrentRound   *Round
 	PreviousRounds []Round
-}
-
-// Round represents a round in a mahjong game.
-type Round struct {
-	// Hands contains the corresponding hand for each player in the game.
-	Hands []Hand
-
-	// Wall contains the remaining tiles left to be drawn.
-	Wall []Tile
-
-	// Discards contains all the previously discarded tiles.
-	Discards []Tile
-
-	// Wind is the prevailing wind for the round.
-	Wind Direction
-
-	// Dealer is the integer offset of the dealer for the round.
-	Dealer int
-
-	// Turn is the integer offset of the player whose turn it currently is.
-	Turn int
-
-	// Phase is the current turn phase.
-	Phase Phase
-
-	// Events contains all the events that happened in the round.
-	Events []Event
-
-	// Result is the outcome of the round.
-	Result Result
 }
