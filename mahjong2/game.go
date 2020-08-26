@@ -110,9 +110,9 @@ func NewTileBag(tiles []Tile) TileBag {
 
 // Hand represents all the tiles belonging to a player.
 type Hand struct {
-	Flowers   []Tile
-	Revealed  []Meld
-	Concealed TileBag
+	Flowers   []Tile  `json:"flowers"`
+	Revealed  []Meld  `json:"revealed"`
+	Concealed TileBag `json:"concealed"`
 }
 
 // View returns another player's view of a hand.
@@ -157,19 +157,19 @@ const (
 // Result represents the outcome of a round.
 type Result struct {
 	// Dealer is the integer offset of the dealer for the round.
-	Dealer int
+	Dealer int `json:"dealer"`
 
 	// Wind is the prevailing wind for the round.
-	Wind Direction
+	Wind Direction `json:"wind"`
 
 	// Winner is the integer offset of the winner for the round, or -1 if the round ended in a draw.
-	Winner int
+	Winner int `json:"winner"`
 
 	// Points is how much the winning hand was worth.
-	Points int
+	Points int `json:"points"`
 
 	// WinningTiles is the set of flowers and tiles belonging to the winner.
-	WinningTiles []Tile
+	WinningTiles []Tile `json:"winning_tiles"`
 }
 
 // Game represents a mahjong game.

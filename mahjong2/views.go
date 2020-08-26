@@ -6,11 +6,11 @@ import (
 
 // HandView represents a player's view of another player's hand.
 type HandView struct {
-	Flowers  []Tile
-	Revealed []Meld
+	Flowers  []Tile `json:"flowers"`
+	Revealed []Meld `json:"revealed"`
 
 	// Concealed is how many concealed tiles the player has.
-	Concealed int
+	Concealed int `json:"concealed"`
 }
 
 // EventType represents the type of an event.
@@ -28,34 +28,34 @@ const (
 // EventView represents a player's view of an event.
 type EventView struct {
 	// Type is the type of an event.
-	Type EventType
+	Type EventType `json:"type"`
 
 	// Seat is the integer offset of the player an event pertains to.
-	Seat int
+	Seat int `json:"seat"`
 
 	// Time is the time an event occurred.
-	Time time.Time
+	Time time.Time `json:"time"`
 
 	// Tiles are the tiles involved in an event.
-	Tiles []Tile
+	Tiles []Tile `json:"tiles"`
 }
 
 // RoundView represents a player's view of a round.
 type RoundView struct {
-	Seat             int
-	Scores           []int
-	Hand             Hand
-	Hands            []HandView
-	DrawsLeft        int
-	Discards         []Tile
-	Wind             Direction
-	Dealer           int
-	Turn             int
-	Phase            Phase
-	Events           []EventView
-	Result           Result
-	LastDiscardTime  time.Time
-	ReservedDuration time.Duration
+	Seat             int           `json:"seat"`
+	Scores           []int         `json:"scores"`
+	Hand             Hand          `json:"hand"`
+	Hands            []HandView    `json:"hands"`
+	DrawsLeft        int           `json:"draws_left"`
+	Discards         []Tile        `json:"discards"`
+	Wind             Direction     `json:"wind"`
+	Dealer           int           `json:"dealer"`
+	Turn             int           `json:"turn"`
+	Phase            Phase         `json:"phase"`
+	Events           []EventView   `json:"events"`
+	Result           Result        `json:"result"`
+	LastDiscardTime  time.Time     `json:"last_discard_time"`
+	ReservedDuration time.Duration `json:"reserved_duration"`
 }
 
 // GameView represents a player's view of the game.
