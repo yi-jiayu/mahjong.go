@@ -32,6 +32,23 @@ func (r *Round) Draw(seat int, t time.Time) (drawn Tile, flowers []Tile, err err
 	return
 }
 
+func (r *Round) Discard(seat int, t time.Time, tile Tile) error {
+	if seat != r.Turn {
+		return errors.New("wrong turn")
+	}
+	if r.Phase != PhaseDiscard {
+		return errors.New("wrong phase")
+	}
+	if !r.Hands[seat].Concealed.Contains(tile) {
+		return errors.New("missing tiles")
+	}
+	r.Hands[seat].Concealed.Remove(tile)
+	r.Discards = append(r.Discards, tile)
+	r.Turn = (r.Turn + 1) % 4
+	r.Phase = PhaseDraw
+	return nil
+}
+
 func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 	if r.Turn != seat {
 		return errors.New("wrong turn")
@@ -127,7 +144,7 @@ func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flower
 		Type:  MeldGang,
 		Tiles: []Tile{tile},
 	})
-	replacement, flowers = r.drawFlower()
+	replacement, flowers = r.replaceTile()
 	hand.Flowers = append(hand.Flowers, flowers...)
 	hand.Concealed.Add(replacement)
 	r.Turn = seat
@@ -151,7 +168,7 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 			Type:  MeldGang,
 			Tiles: []Tile{tile},
 		})
-		replacement, flowers = r.drawFlower()
+		replacement, flowers = r.replaceTile()
 		hand.Flowers = append(hand.Flowers, flowers...)
 		hand.Concealed.Add(replacement)
 		return
@@ -160,7 +177,7 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 		if meld.Type == MeldPong && meld.Tiles[0] == tile && hand.Concealed.Count(tile) > 0 {
 			hand.Concealed.Remove(tile)
 			hand.Revealed[i].Type = MeldGang
-			replacement, flowers = r.drawFlower()
+			replacement, flowers = r.replaceTile()
 			hand.Flowers = append(hand.Flowers, flowers...)
 			hand.Concealed.Add(replacement)
 			return

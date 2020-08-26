@@ -6,6 +6,9 @@ import (
 
 // Round represents a round in a mahjong game.
 type Round struct {
+	// Scores contains the score for each player in the game.
+	Scores []int
+
 	// Hands contains the corresponding hand for each player in the game.
 	Hands []Hand
 
@@ -66,7 +69,7 @@ func (r *Round) previousTurn() int {
 	return (r.Turn + 3) % 4
 }
 
-func (r *Round) drawFlower() (Tile, []Tile) {
+func (r *Round) replaceTile() (Tile, []Tile) {
 	flowers := make([]Tile, 0)
 	drawn := r.drawBack()
 	for isFlower(drawn) {

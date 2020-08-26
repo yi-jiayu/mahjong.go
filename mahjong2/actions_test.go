@@ -68,6 +68,43 @@ func TestRound_Draw(t *testing.T) {
 	})
 }
 
+func TestRound_Discard(t *testing.T) {
+	t.Run("can only discard during own turn", func(t *testing.T) {
+		r := &Round{Turn: 0}
+		err := r.Discard(1, time.Now(), "")
+		assert.EqualError(t, err, "wrong turn")
+	})
+	t.Run("can only discard during discard phase", func(t *testing.T) {
+		r := &Round{Turn: 0, Phase: PhaseDraw}
+		err := r.Discard(0, time.Now(), "")
+		assert.EqualError(t, err, "wrong phase")
+	})
+	t.Run("cannot discard when missing tile", func(t *testing.T) {
+		r := &Round{
+			Turn:  0,
+			Phase: PhaseDiscard,
+			Hands: []Hand{{}},
+		}
+		err := r.Discard(0, time.Now(), TileDragonsRed)
+		assert.EqualError(t, err, "missing tiles")
+	})
+	t.Run("successful discard", func(t *testing.T) {
+		seat := 0
+		r := &Round{
+			Turn:     seat,
+			Phase:    PhaseDiscard,
+			Discards: []Tile{TileWindsEast},
+			Hands:    []Hand{{Concealed: NewTileBag([]Tile{TileCharacters1, TileWindsNorth})}},
+		}
+		err := r.Discard(seat, time.Now(), TileWindsNorth)
+		assert.NoError(t, err)
+		assert.Equal(t, NewTileBag([]Tile{TileCharacters1}), r.Hands[seat].Concealed)
+		assert.Equal(t, []Tile{TileWindsEast, TileWindsNorth}, r.Discards)
+		assert.Equal(t, 1, r.Turn)
+		assert.Equal(t, PhaseDraw, r.Phase)
+	})
+}
+
 func TestRound_Chi(t *testing.T) {
 	t.Run("cannot chi on wrong turn", func(t *testing.T) {
 		r := &Round{Turn: 0}

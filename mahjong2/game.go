@@ -78,12 +78,6 @@ type Hand struct {
 	Concealed TileBag
 }
 
-// Player represents a participant in a mahjong game.
-type Player struct {
-	Name  string
-	Score int
-}
-
 // Direction represents a wind direction.
 type Direction int
 
@@ -131,9 +125,6 @@ type Result struct {
 
 // Game represents a mahjong game.
 type Game struct {
-	// Players contains the players for a game in order.
-	Players []Player
-
 	CurrentRound   *Round
 	PreviousRounds []Round
 }

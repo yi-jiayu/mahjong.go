@@ -56,7 +56,6 @@ type RoundView struct {
 
 // GameView represents a player's view of the game.
 type GameView struct {
-	Players              []Player
 	CurrentRound         RoundView
 	PreviousRoundResults []Result
 }
