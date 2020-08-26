@@ -2,6 +2,7 @@ package mahjong2
 
 import (
 	"errors"
+	"math/rand"
 	"sort"
 	"time"
 )
@@ -59,6 +60,12 @@ func (r *Round) drawFront() Tile {
 	drawn := r.Wall[0]
 	r.Wall = r.Wall[1:]
 	return drawn
+}
+
+func (r *Round) drawFrontN(n int) []Tile {
+	draws := r.Wall[:n]
+	r.Wall = r.Wall[n:]
+	return draws
 }
 
 func (r *Round) drawBack() Tile {
@@ -329,4 +336,136 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	}
 	r.Phase = PhaseFinished
 	return nil
+}
+
+func (r *Round) distributeTiles() {
+	r.Hands = []Hand{
+		{
+			Flowers:   []Tile{},
+			Revealed:  []Meld{},
+			Concealed: TileBag{},
+		},
+		{
+			Flowers:   []Tile{},
+			Revealed:  []Meld{},
+			Concealed: TileBag{},
+		},
+		{
+			Flowers:   []Tile{},
+			Revealed:  []Meld{},
+			Concealed: TileBag{},
+		},
+		{
+			Flowers:   []Tile{},
+			Revealed:  []Meld{},
+			Concealed: TileBag{},
+		},
+	}
+	order := []int{r.Dealer, (r.Dealer + 1) % 4, (r.Dealer + 2) % 4, (r.Dealer + 3) % 4}
+	// draw 4 tiles 3 times
+	for i := 0; i < 3; i++ {
+		var draws []Tile
+		for _, seat := range order {
+			draws = r.drawFrontN(4)
+			r.Hands[seat].Concealed.Add(draws...)
+		}
+	}
+	// draw one tile
+	var draw Tile
+	for _, seat := range order {
+		draw = r.drawFront()
+		r.Hands[seat].Concealed.Add(draw)
+	}
+	// dealer draws one extra tile
+	draw = r.drawFront()
+	r.Hands[r.Dealer].Concealed.Add(draw)
+	// replace flowers
+	for len(order) > 0 {
+		seat := order[0]
+		order = order[1:]
+		mustReplaceAgain := false
+		var flowers, replacements []Tile
+		for tile := range r.Hands[seat].Concealed {
+			if isFlower(tile) {
+				draw = r.drawBack()
+				if isFlower(draw) {
+					mustReplaceAgain = true
+				}
+				flowers = append(flowers, tile)
+				replacements = append(replacements, draw)
+			}
+		}
+		if mustReplaceAgain {
+			order = append(order, seat)
+		}
+		sort.Slice(flowers, func(i, j int) bool {
+			return flowers[i] < flowers[j]
+		})
+		r.Hands[seat].Flowers = append(r.Hands[seat].Flowers, flowers...)
+		r.Hands[seat].Concealed.Remove(flowers...)
+		r.Hands[seat].Concealed.Add(replacements...)
+	}
+	return
+}
+
+func (r *Round) Start(seed int64) {
+	r.Wall = newWall(rand.New(rand.NewSource(seed)))
+	r.distributeTiles()
+	r.Turn = r.Dealer
+	r.Phase = PhaseDiscard
+}
+
+// View returns a view of a round from a certain seat. Values of seat outside
+// of [0, 3] will return a bystander's view of the round.
+func (r *Round) View(seat int) RoundView {
+	events := make([]EventView, len(r.Events))
+	for i, event := range r.Events {
+		events[i] = event.View()
+	}
+	var hand Hand
+	var hands []HandView
+	if seat >= 0 && seat < 4 {
+		hand = r.Hands[seat]
+		hands = []HandView{
+			r.Hands[(seat+1)%4].View(),
+			r.Hands[(seat+2)%4].View(),
+			r.Hands[(seat+3)%4].View(),
+		}
+	} else {
+		seat = 0
+		hands = []HandView{
+			r.Hands[0].View(),
+			r.Hands[1].View(),
+			r.Hands[2].View(),
+			r.Hands[3].View(),
+		}
+	}
+	return RoundView{
+		Seat:             seat,
+		Scores:           r.Scores,
+		Hand:             hand,
+		Hands:            hands,
+		DrawsLeft:        len(r.Wall) - 16,
+		Discards:         r.Discards,
+		Wind:             r.Wind,
+		Dealer:           r.Dealer,
+		Turn:             r.Turn,
+		Phase:            r.Phase,
+		Events:           events,
+		Result:           r.Result,
+		LastDiscardTime:  r.LastDiscardTime,
+		ReservedDuration: r.ReservedDuration,
+	}
+}
+
+func newWall(r *rand.Rand) []Tile {
+	var wall []Tile
+	wall = append(wall, flowerTiles...)
+	for _, tile := range suitedTiles {
+		wall = append(wall, tile, tile, tile, tile)
+	}
+	r.Shuffle(len(wall), func(i, j int) {
+		wall[i], wall[j] = wall[j], wall[i]
+	})
+	return wall
 }

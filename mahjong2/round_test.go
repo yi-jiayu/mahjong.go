@@ -1,6 +1,7 @@
 package mahjong2
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
@@ -510,4 +511,158 @@ func TestRound_Hu(t *testing.T) {
 			},
 		}, r.Result)
 	})
+}
+
+func TestRound_View(t *testing.T) {
+	r := &Round{
+		Scores:           []int{4, 2, 0, 1},
+		Dealer:           1,
+		Wind:             DirectionNorth,
+		ReservedDuration: 2 * time.Second,
+	}
+	r.Start(0)
+	_ = r.Discard(1, time.Time{}, TileBamboo1)
+	t.Run("view from seat", func(t *testing.T) {
+		seat := 1
+		view := r.View(seat)
+		assert.Equal(
+			t,
+			RoundView{
+				Seat:   seat,
+				Scores: r.Scores,
+				Hand:   r.Hands[seat],
+				Hands: []HandView{
+					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: 13},
+					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: 13},
+					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: 13},
+				},
+				DrawsLeft: len(r.Wall) - 16,
+				Discards:  r.Discards,
+				Wind:      r.Wind,
+				Dealer:    r.Dealer,
+				Turn:      r.Turn,
+				Phase:     r.Phase,
+				Events: []EventView{{
+					Type:  EventDiscard,
+					Seat:  1,
+					Tiles: []Tile{TileBamboo1},
+				}},
+
+				Result:           r.Result,
+				LastDiscardTime:  r.LastDiscardTime,
+				ReservedDuration: r.ReservedDuration,
+			},
+			view,
+		)
+	})
+	t.Run("bystander's view", func(t *testing.T) {
+		view := r.View(-1)
+		t.Logf("%#v", view.Hands)
+		assert.Equal(
+			t,
+			RoundView{
+				Scores: r.Scores,
+				Hands: []HandView{
+					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: 13},
+					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: 13},
+					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: 13},
+					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: 13},
+				},
+				DrawsLeft: len(r.Wall) - 16,
+				Discards:  r.Discards,
+				Wind:      r.Wind,
+				Dealer:    r.Dealer,
+				Turn:      r.Turn,
+				Phase:     r.Phase,
+				Events: []EventView{{
+					Type:  EventDiscard,
+					Seat:  1,
+					Tiles: []Tile{TileBamboo1},
+				}},
+				Result:           r.Result,
+				LastDiscardTime:  r.LastDiscardTime,
+				ReservedDuration: r.ReservedDuration,
+			},
+			view,
+		)
+	})
+}
+
+func Test_newWall(t *testing.T) {
+	r := rand.New(rand.NewSource(0))
+	got := newWall(r)
+	want := []Tile{"38八万", "35五万", "27六索", "44红中", "22一索", "34四万", "35五万", "20八筒", "37七万", "13一筒", "43北风", "26五索", "21九筒", "25四索", "42西风", "17五筒", "38八万", "36六万", "16四筒", "43北风", "20八筒", "22一索", "37七万", "25四索", "42西风", "30九索", "19七筒", "06兰", "27六索", "07菊", "40东风", "32二万", "29八索", "36六万", "34四万", "46白板", "32二万", "15三筒", "17五筒", "37七万", "42西风", "14二筒", "43北风", "20八筒", "28七索", "45青发", "17五筒", "36六万", "34四万", "14二筒", "12冬", "46白板", "22一索", "40东风", "37七万", "28七索", "29八索", "16四筒", "39九万", "13一筒", "24三索", "01猫", "27六索", "40东风", "41南风", "34四万", "24三索", "31一万", "31一万", "25四索", "13一筒", "26五索", "15三筒", "14二筒", "18六筒", "24三索", "11秋", "19七筒", "45青发", "41南风", "44红中", "39九万", "27六索", "26五索", "10夏", "15三筒", "21九筒", "36六万", "41南风", "33三万", "29八索", "23二索", "28七索", "04蜈蚣", "32二万", "38八万", "29八索", "05梅", "39九万", "21九筒", "46白板", "33三万", "09春", "32二万", "25四索", "30九索", "39九万", "23二索", "02老鼠", "24三索", "44红中", "28七索", "45青发", "18六筒", "31一万", "14二筒", "43北风", "13一筒", "45青发", "30九索", "18六筒", "22一索", "31一万", "16四筒", "17五筒", "26五索", "23二索", "21九筒", "35五万", "42西风", "03公鸡", "35五万", "18六筒", "30九索", "46白板", "38八万", "40东风", "19七筒", "15三筒", "41南风", "33三万", "16四筒", "20八筒", "23二索", "08竹", "33三万", "19七筒", "44红中"}
+	assert.Equal(t, want, got)
+}
+
+func TestRound_distributeTiles(t *testing.T) {
+	r := &Round{
+		Dealer: 1,
+		Wall: []Tile{
+			"38八万", "35五万", "27六索", "44红中", // dealer (1) draws first
+			"22一索", "34四万", "35五万", "20八筒",
+			"37七万", "13一筒", "43北风", "26五索",
+			"21九筒", "25四索", "42西风", "17五筒",
+
+			"38八万", "36六万", "16四筒", "43北风",
+			"20八筒", "22一索", "37七万", "25四索",
+			"42西风", "30九索", "19七筒", "06兰", // 3 draws a flower
+			"27六索", "07菊", "40东风", "32二万", // 0 draws a flower
+
+			"29八索", "36六万", "34四万", "46白板",
+			"32二万", "15三筒", "17五筒", "37七万",
+			"42西风", "14二筒", "43北风", "20八筒",
+			"28七索", "45青发", "17五筒", "36六万",
+
+			"34四万",
+			"14二筒",
+			"12冬", // 3 draws another flower
+			"46白板",
+
+			"22一索",
+
+			"40东风", "37七万", "28七索", "29八索", "16四筒", "39九万", "13一筒", "24三索", "44红中", "27六索", "40东风", "41南风", "34四万", "24三索", "31一万", "31一万", "25四索", "13一筒", "26五索", "15三筒", "14二筒", "18六筒", "24三索", "11秋", "19七筒", "45青发", "41南风", "44红中", "39九万", "27六索", "26五索", "10夏", "15三筒", "21九筒", "36六万", "41南风", "33三万", "29八索", "23二索", "28七索", "04蜈蚣", "32二万", "38八万", "29八索", "05梅", "39九万", "21九筒", "46白板", "33三万", "09春", "32二万", "25四索", "30九索", "39九万", "23二索", "02老鼠", "24三索", "44红中", "28七索", "45青发", "18六筒", "31一万", "14二筒", "43北风", "13一筒", "45青发", "30九索", "18六筒", "22一索", "31一万", "16四筒", "17五筒", "26五索", "23二索", "21九筒", "35五万", "42西风", "03公鸡", "35五万", "18六筒", "30九索", "46白板", "38八万", "40东风", "19七筒", "15三筒", "41南风", "33三万", "16四筒", "20八筒",
+
+			"23二索",        // 3 replaces the fourth flower
+			"08竹",         // 3 replaces the third flower and gets a fourth flower
+			"33三万",        // 0 replaces one tile
+			"19七筒", "01猫", // 3 replaces two tiles and gets a third flower
+		},
+	}
+	r.distributeTiles()
+	assert.Equal(t,
+		NewTileBag([]Tile{"38八万", "35五万", "27六索", "44红中", "38八万", "36六万", "16四筒", "43北风", "29八索", "36六万", "34四万", "46白板", "34四万", "22一索"}),
+		r.Hands[1].Concealed)
+	assert.Equal(t,
+		NewTileBag([]Tile{"22一索", "34四万", "35五万", "20八筒", "20八筒", "22一索", "37七万", "25四索", "32二万", "15三筒", "17五筒", "37七万", "14二筒"}),
+		r.Hands[2].Concealed)
+	assert.Equal(t,
+		NewTileBag([]Tile{
+			"37七万", "13一筒", "43北风", "26五索",
+			"42西风", "30九索", "19七筒",
+			"42西风", "14二筒", "43北风", "20八筒",
+			"19七筒", "23二索", // replaced tiles
+		}),
+		r.Hands[3].Concealed)
+	assert.ElementsMatch(t, []Tile{"06兰", "12冬", "01猫", "08竹"}, r.Hands[3].Flowers)
+	assert.Equal(t,
+		NewTileBag([]Tile{
+			"21九筒", "25四索", "42西风", "17五筒",
+			"27六索", "40东风", "32二万",
+			"28七索", "45青发", "17五筒", "36六万",
+			"46白板",
+			"33三万", // replaced tile
+		}),
+		r.Hands[0].Concealed)
+	assert.ElementsMatch(t, []Tile{"07菊"}, r.Hands[0].Flowers)
+	assert.Equal(t,
+		[]Tile{"40东风", "37七万", "28七索", "29八索", "16四筒", "39九万", "13一筒", "24三索", "44红中", "27六索", "40东风", "41南风", "34四万", "24三索", "31一万", "31一万", "25四索", "13一筒", "26五索", "15三筒", "14二筒", "18六筒", "24三索", "11秋", "19七筒", "45青发", "41南风", "44红中", "39九万", "27六索", "26五索", "10夏", "15三筒", "21九筒", "36六万", "41南风", "33三万", "29八索", "23二索", "28七索", "04蜈蚣", "32二万", "38八万", "29八索", "05梅", "39九万", "21九筒", "46白板", "33三万", "09春", "32二万", "25四索", "30九索", "39九万", "23二索", "02老鼠", "24三索", "44红中", "28七索", "45青发", "18六筒", "31一万", "14二筒", "43北风", "13一筒", "45青发", "30九索", "18六筒", "22一索", "31一万", "16四筒", "17五筒", "26五索", "23二索", "21九筒", "35五万", "42西风", "03公鸡", "35五万", "18六筒", "30九索", "46白板", "38八万", "40东风", "19七筒", "15三筒", "41南风", "33三万", "16四筒", "20八筒"},
+		r.Wall)
+}
+
+func TestRound_Start(t *testing.T) {
+	r := new(Round)
+	r.Start(0)
+	assert.Equal(t, r.Dealer, r.Turn)
+	assert.Equal(t, r.Phase, PhaseDiscard)
 }

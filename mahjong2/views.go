@@ -42,16 +42,20 @@ type EventView struct {
 
 // RoundView represents a player's view of a round.
 type RoundView struct {
-	Seat      int
-	Hand      Hand
-	Opponents HandView
-	DrawsLeft int
-	Discards  []Tile
-	Wind      Direction
-	Dealer    int
-	Turn      int
-	Phase     Phase
-	Events    []EventView
+	Seat             int
+	Scores           []int
+	Hand             Hand
+	Hands            []HandView
+	DrawsLeft        int
+	Discards         []Tile
+	Wind             Direction
+	Dealer           int
+	Turn             int
+	Phase            Phase
+	Events           []EventView
+	Result           Result
+	LastDiscardTime  time.Time
+	ReservedDuration time.Duration
 }
 
 // GameView represents a player's view of the game.

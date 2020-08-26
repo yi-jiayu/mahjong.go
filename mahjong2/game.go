@@ -53,6 +53,14 @@ func (m Melds) Tiles() []Tile {
 
 type TileBag map[Tile]int
 
+func (b TileBag) Cardinality() int {
+	c := 0
+	for _, count := range b {
+		c += count
+	}
+	return c
+}
+
 func (b TileBag) Contains(tile Tile) bool {
 	return b[tile] > 0
 }
@@ -61,20 +69,23 @@ func (b TileBag) Count(tile Tile) int {
 	return b[tile]
 }
 
-func (b TileBag) Add(tile Tile) {
-	b[tile]++
+func (b TileBag) Add(tiles ...Tile) {
+	for _, tile := range tiles {
+		b[tile]++
+	}
 }
 
-func (b TileBag) Remove(tile Tile) bool {
-	if b[tile] == 0 {
-		return false
+func (b TileBag) Remove(tiles ...Tile) {
+	for _, tile := range tiles {
+		if b[tile] == 0 {
+			continue
+		}
+		if b[tile] == 1 {
+			delete(b, tile)
+		} else {
+			b[tile]--
+		}
 	}
-	if b[tile] == 1 {
-		delete(b, tile)
-	} else {
-		b[tile]--
-	}
-	return true
 }
 
 func (b TileBag) RemoveN(tile Tile, n int) bool {
@@ -102,6 +113,15 @@ type Hand struct {
 	Flowers   []Tile
 	Revealed  []Meld
 	Concealed TileBag
+}
+
+// View returns another player's view of a hand.
+func (h Hand) View() HandView {
+	return HandView{
+		Flowers:   h.Flowers,
+		Revealed:  h.Revealed,
+		Concealed: h.Concealed.Cardinality(),
+	}
 }
 
 // Direction represents a wind direction.
