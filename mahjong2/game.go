@@ -1,13 +1,5 @@
 package mahjong2
 
-// Event represents things that happened during a mahjong game, such as
-// drawing a tile, discarding a tile or creating a melded set. Events can be
-// undone to return to a previous round state and vice-versa.
-type Event interface {
-	Undo(r *Round)
-	Redo(r *Round)
-}
-
 // MeldType represents the type of a melded set.
 type MeldType int
 
