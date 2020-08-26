@@ -9,20 +9,54 @@ type Event interface {
 }
 
 // MeldType represents the type of a melded set.
-type MeldType string
+type MeldType int
 
 // Allowed meld types.
 const (
-	MeldChi  MeldType = "chi"
-	MeldPong MeldType = "pong"
-	MeldGang MeldType = "gang"
-	MeldEyes MeldType = "eyes"
+	MeldChi MeldType = iota
+	MeldPong
+	MeldGang
+	MeldEyes
 )
 
 // Meld represents a melded set.
 type Meld struct {
 	Type  MeldType
 	Tiles []Tile
+}
+
+type Melds []Meld
+
+func (m Melds) Len() int {
+	return len(m)
+}
+
+func (m Melds) Less(i, j int) bool {
+	if m[i].Type < m[j].Type {
+		return true
+	}
+	return m[i].Tiles[0] < m[j].Tiles[0]
+}
+
+func (m Melds) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m Melds) Tiles() []Tile {
+	var tiles []Tile
+	for _, meld := range m {
+		switch meld.Type {
+		case MeldChi:
+			tiles = append(tiles, meld.Tiles...)
+		case MeldPong:
+			tiles = append(tiles, meld.Tiles[0], meld.Tiles[0], meld.Tiles[0])
+		case MeldGang:
+			tiles = append(tiles, meld.Tiles[0], meld.Tiles[0], meld.Tiles[0], meld.Tiles[0])
+		case MeldEyes:
+			tiles = append(tiles, meld.Tiles[0], meld.Tiles[0])
+		}
+	}
+	return tiles
 }
 
 type TileBag map[Tile]int
@@ -121,6 +155,9 @@ type Result struct {
 
 	// Points is how much the winning hand was worth.
 	Points int
+
+	// WinningTiles is the set of flowers and tiles belonging to the winner.
+	WinningTiles []Tile
 }
 
 // Game represents a mahjong game.

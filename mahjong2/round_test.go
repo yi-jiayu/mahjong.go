@@ -367,3 +367,98 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.Equal(t, PhaseDiscard, r.Phase)
 	})
 }
+
+func TestRound_Hu(t *testing.T) {
+	t.Run("cannot hu immediately after discarding", func(t *testing.T) {
+		r := &Round{Turn: 1}
+		err := r.Hu(0, time.Now())
+		assert.EqualError(t, err, "wrong turn")
+	})
+	t.Run("cannot hu during own draw phase", func(t *testing.T) {
+		r := &Round{Turn: 0, Phase: PhaseDraw}
+		err := r.Hu(0, time.Now())
+		assert.EqualError(t, err, "wrong phase")
+	})
+	t.Run("cannot hu during other player's discard phase", func(t *testing.T) {
+		r := &Round{Turn: 2, Phase: PhaseDiscard}
+		err := r.Hu(0, time.Now())
+		assert.EqualError(t, err, "wrong turn")
+	})
+	t.Run("cannot hu when winning hand cannot be found", func(t *testing.T) {
+		r := &Round{
+			Turn:  0,
+			Phase: PhaseDiscard,
+			Hands: []Hand{{Concealed: TileBag{}}},
+		}
+		err := r.Hu(0, time.Now())
+		assert.EqualError(t, err, "missing tiles")
+	})
+	t.Run("successful zi mo hu", func(t *testing.T) {
+		seat := 1
+		r := &Round{
+			Turn:  seat,
+			Phase: PhaseDiscard,
+			Hands: []Hand{{},
+				{
+					Flowers:  []Tile{TileGentlemen1, TileCat},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileDragonsWhite, TileDragonsWhite,
+					}),
+				},
+			},
+		}
+		err := r.Hu(seat, time.Now())
+		assert.NoError(t, err)
+		assert.Equal(t, PhaseFinished, r.Phase)
+		assert.Equal(t, Result{
+			Winner: seat,
+			WinningTiles: []Tile{
+				"05梅", "01猫",
+				"15三筒", "16四筒", "17五筒",
+				"27六索", "28七索", "29八索",
+				"38八万", "38八万", "38八万",
+				"42西风", "42西风", "42西风",
+				"46白板", "46白板",
+			},
+		}, r.Result)
+	})
+	t.Run("successful hu from discards", func(t *testing.T) {
+		seat := 2
+		r := &Round{
+			Turn:     0,
+			Phase:    PhaseDraw,
+			Discards: []Tile{TileDragonsRed, TileDragonsWhite},
+			Hands: []Hand{{}, {},
+				{
+					Flowers:  []Tile{TileGentlemen1, TileCat},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileDragonsWhite,
+					}),
+				},
+			},
+		}
+		err := r.Hu(seat, time.Now())
+		assert.NoError(t, err)
+		assert.Equal(t, []Tile{TileDragonsRed}, r.Discards)
+		assert.Equal(t, PhaseFinished, r.Phase)
+		assert.Equal(t, Result{
+			Winner: seat,
+			WinningTiles: []Tile{
+				"05梅", "01猫",
+				"15三筒", "16四筒", "17五筒",
+				"27六索", "28七索", "29八索",
+				"38八万", "38八万", "38八万",
+				"42西风", "42西风", "42西风",
+				"46白板", "46白板",
+			},
+		}, r.Result)
+	})
+}

@@ -17,16 +17,16 @@ func Test_search(t *testing.T) {
 		result := search(tiles)
 		assert.Equal(t, [][]Meld{
 			{
-				{Type: "chi", Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
-				{Type: "chi", Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
-				{Type: "chi", Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
-				{Type: "eyes", Tiles: []Tile{"46白板"}},
+				{Type: MeldChi, Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
+				{Type: MeldChi, Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
+				{Type: MeldChi, Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
+				{Type: MeldEyes, Tiles: []Tile{"46白板"}},
 			},
 			{
-				{Type: "pong", Tiles: []Tile{"13一筒"}},
-				{Type: "pong", Tiles: []Tile{"14二筒"}},
-				{Type: "pong", Tiles: []Tile{"15三筒"}},
-				{Type: "eyes", Tiles: []Tile{"46白板"}},
+				{Type: MeldPong, Tiles: []Tile{"13一筒"}},
+				{Type: MeldPong, Tiles: []Tile{"14二筒"}},
+				{Type: MeldPong, Tiles: []Tile{"15三筒"}},
+				{Type: MeldEyes, Tiles: []Tile{"46白板"}},
 			},
 		}, result)
 	})
@@ -45,7 +45,7 @@ func Test_search(t *testing.T) {
 			TileDragonsWhite, TileDragonsWhite,
 		})
 		result := search(tiles)
-		assert.Equal(t, [][]Meld{{{Type: "eyes", Tiles: []Tile{"46白板"}}}}, result)
+		assert.Equal(t, [][]Meld{{{Type: MeldEyes, Tiles: []Tile{"46白板"}}}}, result)
 	})
 }
 
@@ -59,4 +59,16 @@ func Benchmark_search(b *testing.B) {
 		})
 		search(tiles)
 	}
+}
+
+func Test_score(t *testing.T) {
+	t.Run("ping hu", func(t *testing.T) {
+		melds := []Meld{
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileCharacters4, TileCharacters5, TileCharacters6}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		score(nil, 0, melds)
+	})
 }

@@ -7,7 +7,7 @@ import (
 
 type searchState struct {
 	tiles TileBag
-	melds []Meld
+	melds Melds
 }
 
 func (s searchState) copy() searchState {
@@ -26,12 +26,7 @@ func (s searchState) copy() searchState {
 }
 
 func (s searchState) hash() string {
-	sort.Slice(s.melds, func(i, j int) bool {
-		if s.melds[i].Type < s.melds[j].Type {
-			return true
-		}
-		return s.melds[i].Tiles[0] < s.melds[j].Tiles[0]
-	})
+	sort.Sort(s.melds)
 	return fmt.Sprint(s)
 }
 
@@ -102,4 +97,8 @@ func search(tiles TileBag) [][]Meld {
 		}
 	}
 	return results
+}
+
+func score(round *Round, seat int, hand []Meld) int {
+	return 0
 }

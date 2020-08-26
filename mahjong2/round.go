@@ -252,3 +252,43 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 	err = errors.New("missing tiles")
 	return
 }
+
+func (r *Round) Hu(seat int, t time.Time) error {
+	if seat == r.previousTurn() {
+		return errors.New("wrong turn")
+	}
+	if r.Turn != seat && r.Phase == PhaseDiscard {
+		return errors.New("wrong turn")
+	}
+	if r.Turn == seat && r.Phase == PhaseDraw {
+		return errors.New("wrong phase")
+	}
+	// temporarily add the last discard to the player's hand
+	// if trying to hu from a discard
+	if r.Phase == PhaseDraw {
+		r.Hands[seat].Concealed.Add(r.lastDiscard())
+	}
+	winningHands := search(r.Hands[seat].Concealed)
+	if len(winningHands) == 0 {
+		if r.Phase == PhaseDraw {
+			r.Hands[seat].Concealed.Remove(r.lastDiscard())
+		}
+		return errors.New("missing tiles")
+	}
+	// actually remove the last discard if the player has a winning hand
+	if r.Phase == PhaseDraw {
+		r.popLastDiscard()
+	}
+	// for now, take the first winning hand
+	// ideally we will take the highest scoring hand
+	winningHand := Melds(append(winningHands[0], r.Hands[seat].Revealed...))
+	sort.Sort(winningHand)
+	r.Result = Result{
+		Dealer:       r.Dealer,
+		Wind:         r.Wind,
+		Winner:       seat,
+		WinningTiles: append(r.Hands[seat].Flowers, winningHand.Tiles()...),
+	}
+	r.Phase = PhaseFinished
+	return nil
+}
