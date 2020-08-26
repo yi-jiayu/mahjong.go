@@ -104,6 +104,12 @@ func (r *Round) Draw(seat int, t time.Time) (drawn Tile, flowers []Tile, err err
 	hand.Concealed.Add(drawn)
 	hand.Flowers = append(hand.Flowers, flowers...)
 	r.Phase = PhaseDiscard
+	r.Events = append(r.Events, DrawEvent{
+		Seat:    seat,
+		Time:    t,
+		Tile:    drawn,
+		Flowers: flowers,
+	})
 	return
 }
 
@@ -121,6 +127,11 @@ func (r *Round) Discard(seat int, t time.Time, tile Tile) error {
 	r.Discards = append(r.Discards, tile)
 	r.Turn = (r.Turn + 1) % 4
 	r.Phase = PhaseDraw
+	r.Events = append(r.Events, DiscardEvent{
+		Seat: seat,
+		Time: t,
+		Tile: tile,
+	})
 	return nil
 }
 
@@ -158,6 +169,12 @@ func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 		Tiles: seq,
 	})
 	r.Phase = PhaseDiscard
+	r.Events = append(r.Events, ChiEvent{
+		Seat:        seat,
+		Time:        t,
+		LastDiscard: tile0,
+		Tiles:       [2]Tile{tile1, tile2},
+	})
 	return nil
 }
 
@@ -180,6 +197,12 @@ func (r *Round) Pong(seat int, t time.Time) error {
 	hand.Revealed = append(hand.Revealed, Meld{
 		Type:  MeldPong,
 		Tiles: []Tile{tile},
+	})
+	r.Events = append(r.Events, PongEvent{
+		Seat:         seat,
+		Time:         t,
+		Tile:         tile,
+		PreviousTurn: r.Turn,
 	})
 	r.Turn = seat
 	r.Phase = PhaseDiscard
@@ -213,6 +236,11 @@ func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flower
 	replacement, flowers = r.replaceTile()
 	hand.Flowers = append(hand.Flowers, flowers...)
 	hand.Concealed.Add(replacement)
+	r.Events = append(r.Events, GangEvent{
+		Seat: seat,
+		Time: t,
+		Tile: tile,
+	})
 	r.Turn = seat
 	r.Phase = PhaseDiscard
 	return
@@ -237,6 +265,11 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 		replacement, flowers = r.replaceTile()
 		hand.Flowers = append(hand.Flowers, flowers...)
 		hand.Concealed.Add(replacement)
+		r.Events = append(r.Events, GangEvent{
+			Seat: seat,
+			Time: t,
+			Tile: tile,
+		})
 		return
 	}
 	for i, meld := range hand.Revealed {
@@ -246,6 +279,11 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 			replacement, flowers = r.replaceTile()
 			hand.Flowers = append(hand.Flowers, flowers...)
 			hand.Concealed.Add(replacement)
+			r.Events = append(r.Events, GangEvent{
+				Seat: seat,
+				Time: t,
+				Tile: tile,
+			})
 			return
 		}
 	}

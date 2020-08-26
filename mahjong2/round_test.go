@@ -47,6 +47,12 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileBamboo1}), r.Hands[seat].Concealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
+		assert.Equal(t, []Event{DrawEvent{
+			Seat:    seat,
+			Time:    now,
+			Tile:    drawn,
+			Flowers: flowers,
+		}}, r.Events)
 	})
 	t.Run("successful draw with flowers", func(t *testing.T) {
 		seat := 0
@@ -65,6 +71,12 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileDots5}), r.Hands[seat].Concealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
+		assert.Equal(t, []Event{DrawEvent{
+			Seat:    seat,
+			Time:    now,
+			Tile:    drawn,
+			Flowers: flowers,
+		}}, r.Events)
 	})
 }
 
@@ -96,12 +108,18 @@ func TestRound_Discard(t *testing.T) {
 			Discards: []Tile{TileWindsEast},
 			Hands:    []Hand{{Concealed: NewTileBag([]Tile{TileCharacters1, TileWindsNorth})}},
 		}
-		err := r.Discard(seat, time.Now(), TileWindsNorth)
+		now := time.Now()
+		err := r.Discard(seat, now, TileWindsNorth)
 		assert.NoError(t, err)
 		assert.Equal(t, NewTileBag([]Tile{TileCharacters1}), r.Hands[seat].Concealed)
 		assert.Equal(t, []Tile{TileWindsEast, TileWindsNorth}, r.Discards)
 		assert.Equal(t, 1, r.Turn)
 		assert.Equal(t, PhaseDraw, r.Phase)
+		assert.Equal(t, []Event{DiscardEvent{
+			Seat: seat,
+			Time: now,
+			Tile: TileWindsNorth,
+		}}, r.Events)
 	})
 }
 
@@ -184,6 +202,12 @@ func TestRound_Chi(t *testing.T) {
 		}}, r.Hands[0].Revealed)
 		assert.Equal(t, 0, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
+		assert.Equal(t, []Event{ChiEvent{
+			Seat:        0,
+			Time:        now,
+			LastDiscard: TileBamboo3,
+			Tiles:       [2]Tile{TileBamboo1, TileBamboo2},
+		}}, r.Events)
 	})
 }
 
@@ -217,14 +241,15 @@ func TestRound_Pong(t *testing.T) {
 		assert.EqualError(t, err, "missing tiles")
 	})
 	t.Run("successful pong", func(t *testing.T) {
-		seat := 2
+		seat := 1
 		r := &Round{
-			Turn:     seat,
+			Turn:     3,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileDots1, TileDragonsRed},
-			Hands:    []Hand{{}, {}, {Concealed: NewTileBag([]Tile{TileWindsWest, TileDragonsRed, TileDragonsRed})}},
+			Hands:    []Hand{{}, {Concealed: NewTileBag([]Tile{TileWindsWest, TileDragonsRed, TileDragonsRed})}},
 		}
-		err := r.Pong(seat, time.Now())
+		now := time.Now()
+		err := r.Pong(seat, now)
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDots1}, r.Discards)
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest}), r.Hands[seat].Concealed)
@@ -234,6 +259,12 @@ func TestRound_Pong(t *testing.T) {
 		}}, r.Hands[seat].Revealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
+		assert.Equal(t, []Event{PongEvent{
+			Seat:         seat,
+			Time:         now,
+			Tile:         TileDragonsRed,
+			PreviousTurn: 3,
+		}}, r.Events)
 	})
 }
 
@@ -267,18 +298,19 @@ func TestRound_GangFromDiscard(t *testing.T) {
 		assert.EqualError(t, err, "missing tiles")
 	})
 	t.Run("successful gang from discard", func(t *testing.T) {
-		seat := 2
+		seat := 1
 		r := &Round{
 			Wall:     []Tile{TileCharacters4, TileCharacters6, TileGentlemen1},
-			Turn:     seat,
+			Turn:     3,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileDots1, TileDragonsRed},
-			Hands: []Hand{{}, {}, {
+			Hands: []Hand{{}, {
 				Flowers:   []Tile{TileCat},
 				Concealed: NewTileBag([]Tile{TileWindsWest, TileDragonsRed, TileDragonsRed, TileDragonsRed}),
 			}},
 		}
-		replacement, flowers, err := r.GangFromDiscard(seat, time.Now())
+		now := time.Now()
+		replacement, flowers, err := r.GangFromDiscard(seat, now)
 		assert.NoError(t, err)
 		assert.Equal(t, TileCharacters6, replacement)
 		assert.Equal(t, []Tile{TileGentlemen1}, flowers)
@@ -291,6 +323,11 @@ func TestRound_GangFromDiscard(t *testing.T) {
 		}}, r.Hands[seat].Revealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
+		assert.Equal(t, []Event{GangEvent{
+			Seat: seat,
+			Time: now,
+			Tile: TileDragonsRed,
+		}}, r.Events)
 	})
 }
 
@@ -325,7 +362,8 @@ func TestRound_GangFromHand(t *testing.T) {
 				Concealed: TileBag{TileDragonsRed: 4},
 			}},
 		}
-		replacement, flowers, err := r.GangFromHand(seat, time.Now(), TileDragonsRed)
+		now := time.Now()
+		replacement, flowers, err := r.GangFromHand(seat, now, TileDragonsRed)
 		assert.NoError(t, err)
 		assert.Equal(t, TileDots4, replacement)
 		assert.Equal(t, []Tile{TileCat}, flowers)
@@ -337,6 +375,11 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.Equal(t, []Tile{TileCharacters1}, r.Wall)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
+		assert.Equal(t, []Event{GangEvent{
+			Seat: seat,
+			Time: now,
+			Tile: TileDragonsRed,
+		}}, r.Events)
 	})
 	t.Run("successful promote pong to gang", func(t *testing.T) {
 		seat := 0
@@ -353,7 +396,8 @@ func TestRound_GangFromHand(t *testing.T) {
 				Concealed: TileBag{TileDragonsRed: 1},
 			}},
 		}
-		replacement, flowers, err := r.GangFromHand(seat, time.Now(), TileDragonsRed)
+		now := time.Now()
+		replacement, flowers, err := r.GangFromHand(seat, now, TileDragonsRed)
 		assert.NoError(t, err)
 		assert.Equal(t, TileDots4, replacement)
 		assert.Equal(t, []Tile{TileCat}, flowers)
@@ -365,6 +409,11 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.Equal(t, []Tile{TileCharacters1}, r.Wall)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
+		assert.Equal(t, []Event{GangEvent{
+			Seat: seat,
+			Time: now,
+			Tile: TileDragonsRed,
+		}}, r.Events)
 	})
 }
 

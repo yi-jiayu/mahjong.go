@@ -2,6 +2,7 @@ package mahjong2
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -13,6 +14,34 @@ func testEvent(t *testing.T, before, after func() *Round, event Event) {
 	t.Run("redo", func(t *testing.T) {
 		assert.Equal(t, after(), event.Redo(before()))
 	})
+}
+
+func TestDrawEvent_View(t *testing.T) {
+	now := time.Now()
+	draw := DrawEvent{
+		Seat: 1,
+		Time: now,
+	}
+	assert.Equal(t, EventView{
+		Type: EventDraw,
+		Seat: 1,
+		Time: now,
+	}, draw.View())
+}
+
+func TestDiscardEvent_View(t *testing.T) {
+	now := time.Now()
+	draw := DiscardEvent{
+		Seat: 1,
+		Time: now,
+		Tile: TileWindsWest,
+	}
+	assert.Equal(t, EventView{
+		Type:  EventDiscard,
+		Seat:  1,
+		Time:  now,
+		Tiles: []Tile{TileWindsWest},
+	}, draw.View())
 }
 
 func TestChiEvent_UndoRedo(t *testing.T) {
@@ -47,4 +76,51 @@ func TestChiEvent_UndoRedo(t *testing.T) {
 		Tiles:       [2]Tile{TileBamboo1, TileBamboo2},
 	}
 	testEvent(t, before, after, chi)
+}
+
+func TestChiEvent_View(t *testing.T) {
+	now := time.Now()
+	chi := ChiEvent{
+		Seat:        1,
+		Time:        now,
+		LastDiscard: TileDots4,
+		Tiles:       [2]Tile{TileDots5, TileDots3},
+	}
+	assert.Equal(t, EventView{
+		Type:  EventChi,
+		Seat:  1,
+		Time:  now,
+		Tiles: []Tile{TileDots3, TileDots4, TileDots5},
+	}, chi.View())
+}
+
+func TestPongEvent_View(t *testing.T) {
+	now := time.Now()
+	pong := PongEvent{
+		Seat: 1,
+		Time: now,
+		Tile: TileDragonsRed,
+	}
+	assert.Equal(t, EventView{
+		Type:  EventPong,
+		Seat:  1,
+		Time:  now,
+		Tiles: []Tile{TileDragonsRed},
+	}, pong.View())
+}
+
+func TestGangEvent_View(t *testing.T) {
+	now := time.Now()
+	gang := GangEvent{
+		Seat:    1,
+		Time:    now,
+		Tile:    TileDragonsGreen,
+		Flowers: []Tile{TileRooster, TileCentipede},
+	}
+	assert.Equal(t, EventView{
+		Type:  EventGang,
+		Seat:  1,
+		Time:  now,
+		Tiles: []Tile{TileDragonsGreen, TileRooster, TileCentipede},
+	}, gang.View())
 }
