@@ -94,3 +94,16 @@ var sequences = map[Tile][][2]Tile{
 	TileCharacters8: {{TileCharacters7, TileCharacters8}, {TileCharacters8, TileCharacters9}},
 	TileCharacters9: {{TileCharacters8, TileCharacters9}},
 }
+
+func isValidSequence(tile0, tile1, tile2 Tile) bool {
+	others, ok := sequences[tile0]
+	if !ok {
+		return false
+	}
+	for _, tiles := range others {
+		if (tile1 == tiles[0] && tile2 == tiles[1]) || (tile1 == tiles[1] && tile2 == tiles[0]) {
+			return true
+		}
+	}
+	return false
+}

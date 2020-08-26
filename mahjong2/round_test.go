@@ -131,7 +131,7 @@ func TestRound_Chi(t *testing.T) {
 			Discards: []Tile{TileDragonsRed},
 		}
 		err := r.Chi(0, time.Now(), "", "")
-		assert.EqualError(t, err, "cannot chi non-suited tile")
+		assert.EqualError(t, err, "invalid sequence")
 	})
 	t.Run("cannot chi with invalid sequence", func(t *testing.T) {
 		r := &Round{

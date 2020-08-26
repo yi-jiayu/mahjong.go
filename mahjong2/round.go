@@ -134,19 +134,10 @@ func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 	if len(r.Discards) == 0 {
 		return errors.New("no discards")
 	}
-	others, ok := sequences[r.lastDiscard()]
-	if !ok {
-		return errors.New("cannot chi non-suited tile")
-	}
-	valid := false
-	for _, tiles := range others {
-		if (tile1 == tiles[0] && tile2 == tiles[1]) || (tile1 == tiles[1] && tile2 == tiles[0]) {
-			valid = true
-			break
-		}
-	}
-	if !valid {
+	tile0 := r.lastDiscard()
+	if !isValidSequence(tile0, tile1, tile2) {
 		return errors.New("invalid sequence")
+
 	}
 	hand := &r.Hands[seat]
 	if !hand.Concealed.Contains(tile1) || !hand.Concealed.Contains(tile2) {
@@ -157,7 +148,7 @@ func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 	}
 	hand.Concealed.Remove(tile1)
 	hand.Concealed.Remove(tile2)
-	tile0 := r.popLastDiscard()
+	r.popLastDiscard()
 	seq := []Tile{tile0, tile1, tile2}
 	sort.Slice(seq, func(i, j int) bool {
 		return seq[i] < seq[j]
