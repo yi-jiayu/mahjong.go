@@ -666,3 +666,49 @@ func TestRound_Start(t *testing.T) {
 	assert.Equal(t, r.Dealer, r.Turn)
 	assert.Equal(t, r.Phase, PhaseDiscard)
 }
+
+func TestRound_End(t *testing.T) {
+	t.Run("can only end round during own turn", func(t *testing.T) {
+		r := &Round{
+			Turn: 1,
+		}
+		err := r.End(0, time.Now())
+		assert.EqualError(t, err, "wrong turn")
+	})
+	t.Run("can only end round during discard phase", func(t *testing.T) {
+		r := &Round{
+			Turn:  0,
+			Phase: PhaseDraw,
+		}
+		err := r.End(0, time.Now())
+		assert.EqualError(t, err, "wrong phase")
+	})
+	t.Run("can only end round when there are less than 16 tiles in the wall", func(t *testing.T) {
+		r := &Round{
+			Turn:  0,
+			Phase: PhaseDiscard,
+			Wall: []Tile{
+				"38八万", "35五万", "27六索", "44红中",
+				"22一索", "34四万", "35五万", "20八筒",
+				"37七万", "13一筒", "43北风", "26五索",
+				"21九筒", "25四索", "42西风", "17五筒",
+			},
+		}
+		err := r.End(0, time.Now())
+		assert.EqualError(t, err, "some draws remaining")
+	})
+	t.Run("successfully ending round", func(t *testing.T) {
+		r := &Round{
+			Turn:  0,
+			Phase: PhaseDiscard,
+		}
+		err := r.End(0, time.Now())
+		assert.NoError(t, err)
+		assert.Equal(t, PhaseFinished, r.Phase)
+		assert.Equal(t, Result{
+			Dealer: r.Dealer,
+			Wind:   r.Wind,
+			Winner: -1,
+		}, r.Result)
+	})
+}

@@ -415,6 +415,27 @@ func (r *Round) Start(seed int64) {
 	r.Phase = PhaseDiscard
 }
 
+// End ends a round in a draw. Only the player who drew the last available tile
+// from the wall may initiate this action.
+func (r *Round) End(seat int, t time.Time) error {
+	if r.Turn != seat {
+		return errors.New("wrong turn")
+	}
+	if r.Phase != PhaseDiscard {
+		return errors.New("wrong phase")
+	}
+	if len(r.Wall) >= 16 {
+		return errors.New("some draws remaining")
+	}
+	r.Phase = PhaseFinished
+	r.Result = Result{
+		Dealer: r.Dealer,
+		Wind:   r.Wind,
+		Winner: -1,
+	}
+	return nil
+}
+
 // View returns a view of a round from a certain seat. Values of seat outside
 // of [0, 3] will return a bystander's view of the round.
 func (r *Round) View(seat int) RoundView {
