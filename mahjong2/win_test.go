@@ -62,13 +62,164 @@ func Benchmark_search(b *testing.B) {
 }
 
 func Test_score(t *testing.T) {
-	t.Run("ping hu", func(t *testing.T) {
-		melds := []Meld{
+	t.Run("zi mo ping hu", func(t *testing.T) {
+		round := &Round{
+			Turn:  0,
+			Hands: []Hand{{}},
+		}
+		melds := Melds{
 			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
 			{Type: MeldChi, Tiles: []Tile{TileCharacters4, TileCharacters5, TileCharacters6}},
 			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
 			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
 		}
-		score(nil, 0, melds)
+		assert.Equal(t, 5, score(round, 0, melds))
+	})
+	t.Run("ping hu from discard", func(t *testing.T) {
+		round := &Round{
+			Turn:  2,
+			Hands: []Hand{{}},
+		}
+		melds := Melds{
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileCharacters4, TileCharacters5, TileCharacters6}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		assert.Equal(t, 4, score(round, 0, melds))
+	})
+	t.Run("pong pong hu from discard", func(t *testing.T) {
+		round := &Round{
+			Turn:  2,
+			Hands: []Hand{{}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
+			{Type: MeldPong, Tiles: []Tile{TileCharacters4, TileCharacters4, TileCharacters4}},
+			{Type: MeldGang, Tiles: []Tile{TileBamboo2, TileBamboo2, TileBamboo2, TileBamboo2}},
+			{Type: MeldPong, Tiles: []Tile{TileBamboo4, TileBamboo4, TileBamboo4}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		assert.Equal(t, 2, score(round, 0, melds))
+	})
+	t.Run("flowers", func(t *testing.T) {
+		round := &Round{
+			Turn:  2,
+			Hands: []Hand{{Flowers: []Tile{TileCat, TileGentlemen1, TileGentlemen2}}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
+			{Type: MeldPong, Tiles: []Tile{TileCharacters4, TileCharacters4, TileCharacters4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		assert.Equal(t, 2, score(round, 0, melds))
+	})
+	t.Run("dragons", func(t *testing.T) {
+		round := &Round{
+			Turn:  2,
+			Hands: []Hand{{}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileDragonsRed, TileDragonsRed, TileDragonsRed}},
+			{Type: MeldGang, Tiles: []Tile{TileDragonsWhite, TileDragonsWhite, TileDragonsWhite, TileDragonsWhite}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		assert.Equal(t, 2, score(round, 0, melds))
+	})
+	t.Run("seat wind", func(t *testing.T) {
+		round := &Round{
+			Dealer: 1,
+			Turn:   2,
+			Hands:  []Hand{{}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
+			{Type: MeldPong, Tiles: []Tile{TileWindsNorth, TileWindsNorth, TileWindsNorth}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		assert.Equal(t, 1, score(round, 0, melds))
+	})
+	t.Run("prevailing wind", func(t *testing.T) {
+		round := &Round{
+			Dealer: 1,
+			Turn:   2,
+			Hands:  []Hand{{}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
+			{Type: MeldPong, Tiles: []Tile{TileWindsEast, TileWindsEast, TileWindsEast}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		assert.Equal(t, 1, score(round, 0, melds))
+	})
+	t.Run("seat and prevailing wind", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands:  []Hand{{}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
+			{Type: MeldPong, Tiles: []Tile{TileWindsEast, TileWindsEast, TileWindsEast}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
+			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
+		}
+		assert.Equal(t, 2, score(round, 0, melds))
+	})
+	t.Run("full flush", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands:  []Hand{{}},
+		}
+		melds := []Meld{
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileDots5, TileDots6, TileDots7}},
+			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
+			{Type: MeldPong, Tiles: []Tile{TileDots4, TileDots4, TileDots4}},
+			{Type: MeldEyes, Tiles: []Tile{TileDots8, TileDots8}},
+		}
+		assert.Equal(t, 4, score(round, 0, melds))
+	})
+	t.Run("full flush lesser sequence hand", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands:  []Hand{{Flowers: []Tile{TileCentipede}}},
+		}
+		melds := []Meld{
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileDots5, TileDots6, TileDots7}},
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileDots4, TileDots5, TileDots6}},
+			{Type: MeldEyes, Tiles: []Tile{TileDots8, TileDots8}},
+		}
+		assert.Equal(t, 5, score(round, 0, melds))
+	})
+	t.Run("half flush", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands:  []Hand{{}},
+		}
+		melds := []Meld{
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileDots5, TileDots6, TileDots7}},
+			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
+			{Type: MeldPong, Tiles: []Tile{TileDots4, TileDots4, TileDots4}},
+			{Type: MeldEyes, Tiles: []Tile{TileWindsWest, TileWindsWest}},
+		}
+		assert.Equal(t, 2, score(round, 0, melds))
 	})
 }

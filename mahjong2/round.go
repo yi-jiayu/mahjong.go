@@ -88,6 +88,10 @@ func (r *Round) replaceTile() (Tile, []Tile) {
 	return drawn, flowers
 }
 
+func (r *Round) seatWind(seat int) Direction {
+	return Direction((seat - r.Dealer + 4) % 4)
+}
+
 func (r *Round) Draw(seat int, t time.Time) (drawn Tile, flowers []Tile, err error) {
 	if r.Turn != seat {
 		err = errors.New("wrong turn")

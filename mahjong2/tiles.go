@@ -53,18 +53,49 @@ const (
 	TileDragonsWhite Tile = "46白板"
 )
 
-var (
-	flowerTiles = []Tile{"01猫", "02老鼠", "03公鸡", "04蜈蚣", "05梅", "06兰", "07菊", "08竹", "09春", "10夏", "11秋", "12冬"}
-	suitedTiles = []Tile{"13一筒", "14二筒", "15三筒", "16四筒", "17五筒", "18六筒", "19七筒", "20八筒", "21九筒", "22一索", "23二索", "24三索", "25四索", "26五索", "27六索", "28七索", "29八索", "30九索", "31一万", "32二万", "33三万", "34四万", "35五万", "36六万", "37七万", "38八万", "39九万", "40东风", "41南风", "42西风", "43北风", "44红中", "45青发", "46白板"}
+type Suit int
+
+const (
+	SuitInvalid Suit = iota
+	SuitFlowers
+	SuitDots
+	SuitBamboo
+	SuitCharacters
+	SuitDragons
+	SuitWinds
 )
 
-func isFlower(tile Tile) bool {
-	for _, flower := range flowerTiles {
-		if tile == flower {
-			return true
-		}
+var (
+	flowerTiles = []Tile{TileCat, TileRat, TileRooster, TileCentipede, TileGentlemen1, TileGentlemen2, TileGentlemen3, TileGentlemen4, TileSeasons1, TileSeasons2, TileSeasons3, TileSeasons4}
+	suitedTiles = []Tile{
+		TileDots1, TileDots2, TileDots3, TileDots4, TileDots5, TileDots6, TileDots7, TileDots8, TileDots9,
+		TileBamboo1, TileBamboo2, TileBamboo3, TileBamboo4, TileBamboo5, TileBamboo6, TileBamboo7, TileBamboo8, TileBamboo9,
+		TileCharacters1, TileCharacters2, TileCharacters3, TileCharacters4, TileCharacters5, TileCharacters6, TileCharacters7, TileCharacters8, TileCharacters9,
+		TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth,
+		TileDragonsRed, TileDragonsGreen, TileDragonsWhite,
 	}
-	return false
+)
+
+func (t Tile) Suit() Suit {
+	switch {
+	case t == TileCat || t == TileRat || t == TileRooster || t == TileCentipede || t == TileGentlemen1 || t == TileGentlemen2 || t == TileGentlemen3 || t == TileGentlemen4 || t == TileSeasons1 || t == TileSeasons2 || t == TileSeasons3 || t == TileSeasons4:
+		return SuitFlowers
+	case t == TileDots1 || t == TileDots2 || t == TileDots3 || t == TileDots4 || t == TileDots5 || t == TileDots6 || t == TileDots7 || t == TileDots8 || t == TileDots9:
+		return SuitDots
+	case t == TileBamboo1 || t == TileBamboo2 || t == TileBamboo3 || t == TileBamboo4 || t == TileBamboo5 || t == TileBamboo6 || t == TileBamboo7 || t == TileBamboo8 || t == TileBamboo9:
+		return SuitBamboo
+	case t == TileCharacters1 || t == TileCharacters2 || t == TileCharacters3 || t == TileCharacters4 || t == TileCharacters5 || t == TileCharacters6 || t == TileCharacters7 || t == TileCharacters8 || t == TileCharacters9:
+		return SuitCharacters
+	case t == TileWindsEast || t == TileWindsSouth || t == TileWindsWest || t == TileWindsNorth:
+		return SuitWinds
+	case t == TileDragonsRed || t == TileDragonsGreen || t == TileDragonsWhite:
+		return SuitDragons
+	}
+	return 0
+}
+
+func isFlower(tile Tile) bool {
+	return tile.Suit() == SuitFlowers
 }
 
 // sequences is a map of tiles to valid tiles for completing a sequence.
