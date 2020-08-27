@@ -557,7 +557,6 @@ func TestRound_View(t *testing.T) {
 	})
 	t.Run("bystander's view", func(t *testing.T) {
 		view := r.View(-1)
-		t.Logf("%#v", view.Hands)
 		assert.Equal(
 			t,
 			RoundView{

@@ -1,5 +1,9 @@
 package mahjong
 
+import (
+	"errors"
+)
+
 // MeldType represents the type of a melded set.
 type MeldType int
 
@@ -176,4 +180,25 @@ type Result struct {
 type Game struct {
 	CurrentRound   *Round
 	PreviousRounds []Round
+}
+
+func (g *Game) NextRound() error {
+	if g.CurrentRound.Phase != PhaseFinished {
+		return errors.New("current round not finished")
+	}
+	dealer := g.CurrentRound.Dealer
+	wind := g.CurrentRound.Wind
+	if g.CurrentRound.Result.Winner != dealer {
+		dealer = (g.CurrentRound.Dealer + 1) % 4
+		if dealer == 0 {
+			wind++
+		}
+	}
+	nextRound := &Round{
+		Dealer: dealer,
+		Wind:   wind,
+	}
+	g.PreviousRounds = append(g.PreviousRounds, *g.CurrentRound)
+	g.CurrentRound = nextRound
+	return nil
 }
