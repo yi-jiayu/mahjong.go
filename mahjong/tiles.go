@@ -1,4 +1,4 @@
-package mahjong2
+package mahjong
 
 // Tile represents a mahjong tile.
 type Tile string

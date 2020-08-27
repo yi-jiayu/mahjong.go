@@ -1,4 +1,4 @@
-package mahjong2
+package mahjong
 
 // MeldType represents the type of a melded set.
 type MeldType int

@@ -1,4 +1,4 @@
-package mahjong2
+package mahjong
 
 import (
 	"sort"
