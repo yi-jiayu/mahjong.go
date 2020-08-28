@@ -449,7 +449,7 @@ func (r *Round) View(seat int) RoundView {
 	}
 	var hand Hand
 	var hands []HandView
-	if seat >= 0 && seat < 4 {
+	if 0 <= seat && seat < 4 {
 		hand = r.Hands[seat]
 		hands = []HandView{
 			r.Hands[(seat+1)%4].View(),

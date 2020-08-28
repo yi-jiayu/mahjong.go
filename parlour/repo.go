@@ -55,7 +55,7 @@ func (r *InMemoryRoomRepository) Get(id string) (*Room, error) {
 	id = strings.ToUpper(id)
 	room, ok := r.rooms[id]
 	if !ok {
-		return nil, errors.New("not found")
+		return nil, errNotFound
 	}
 	return room, nil
 }

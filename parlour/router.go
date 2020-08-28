@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 
@@ -37,13 +38,13 @@ func getName(c *gin.Context) (string, error) {
 	if name == "" {
 		return "", errors.New("name is required")
 	}
-	if ok, _ := regexp.MatchString("[0-9A-Za-z]+", name); !ok {
+	if ok, _ := regexp.MatchString("[0-9A-Za-z ]+", name); !ok {
 		return "", errors.New("name is invalid")
 	}
 	return name, nil
 }
 
-func handleCreateRoom(roomRepository RoomRepository) gin.HandlerFunc {
+func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString("playerID")
 		name, err := getName(c)
@@ -66,7 +67,7 @@ func handleCreateRoom(roomRepository RoomRepository) gin.HandlerFunc {
 	}
 }
 
-func handleJoinRoom(roomRepository RoomRepository) gin.HandlerFunc {
+func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString("playerID")
 		roomID := c.Param("roomID")
@@ -109,8 +110,69 @@ func handleJoinRoom(roomRepository RoomRepository) gin.HandlerFunc {
 	}
 }
 
+func leaveRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		playerID := c.GetString("playerID")
+		roomID := c.Param("roomID")
+		room, err := roomRepository.Get(roomID)
+		if errors.Is(err, errNotFound) {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			fmt.Printf("error getting room: %v", err)
+			return
+		}
+		room.WithLock(func(r *Room) {
+			room.removePlayer(playerID)
+			err = roomRepository.Save(r)
+			if err != nil {
+				c.Status(http.StatusInternalServerError)
+				fmt.Printf("error getting room: %v", err)
+				return
+			}
+		})
+	}
+}
+
+func subscribeRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		playerID := c.GetString("playerID")
+		roomID := c.Param("roomID")
+		room, err := roomRepository.Get(roomID)
+		if errors.Is(err, errNotFound) {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			fmt.Printf("error getting room: %v", err)
+			return
+		}
+		ch := make(chan string, 1)
+		room.AddClient(playerID, ch)
+
+		notify := c.Request.Context().Done()
+		go func() {
+			<-notify
+			room.RemoveClient(ch)
+		}()
+
+		c.Stream(func(w io.Writer) bool {
+			if update, ok := <-ch; ok {
+				c.SSEvent("", update)
+				return true
+			}
+			return false
+		})
+	}
+}
+
 func configure(r *gin.Engine, roomRepository RoomRepository) {
 	r.Use(setPlayerID)
-	r.POST("/rooms", handleCreateRoom(roomRepository))
-	r.POST("/rooms/:roomID/players", handleJoinRoom(roomRepository))
+	r.POST("/rooms", createRoomHandler(roomRepository))
+	r.POST("/rooms/:roomID/players", joinRoomHandler(roomRepository))
+	r.DELETE("/rooms/:roomID/players", leaveRoomHandler(roomRepository))
+	r.GET("/rooms/:roomID/live", subscribeRoomHandler(roomRepository))
 }
