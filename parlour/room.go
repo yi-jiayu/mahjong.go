@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/yi-jiayu/mahjong.go/mahjong"
 )
@@ -14,6 +16,10 @@ type Phase int
 const (
 	PhaseLobby Phase = iota
 	PhaseInProgress
+)
+
+var (
+	errForbidden = errors.New("forbidden")
 )
 
 type Player struct {
@@ -71,6 +77,10 @@ func (r *Room) view(playerID string) RoomView {
 		Phase:   r.Phase,
 		Players: r.Players,
 	}
+	if r.Phase == PhaseInProgress {
+		gameView := r.Game.View(r.seat(playerID))
+		view.Game = &gameView
+	}
 	return view
 }
 
@@ -91,24 +101,73 @@ func (r *Room) addPlayer(player Player) error {
 	return nil
 }
 
-func (r *Room) start(playerID string) error {
-	return nil
-}
+const (
+	ActionNextRound = "next"
+	ActionDraw      = "draw"
+	ActionDiscard   = "discard"
+	ActionChi       = "chi"
+	ActionPong      = "pong"
+	ActionGang      = "gang"
+	ActionHu        = "hu"
+	ActionEndRound  = "end"
+)
 
 type Action struct {
+	Nonce int            `json:"nonce"`
 	Type  string         `json:"type"`
 	Tiles []mahjong.Tile `json:"tiles"`
 }
 
-func (r *Room) update(playerID string, action Action) error {
+func (r *Room) reduceGame(seat int, t time.Time, action Action) error {
+	switch action.Type {
+	case ActionNextRound:
+		return r.nextRound()
+	case ActionDraw:
+		_, _, err := r.Game.Draw(seat, t)
+		return err
+	case ActionDiscard:
+		if len(action.Tiles) < 1 {
+			return errors.New("tiles is required")
+		}
+		return r.Game.Discard(seat, t, action.Tiles[0])
+	case ActionChi:
+		if len(action.Tiles) < 2 {
+			return errors.New("tiles is too short")
+		}
+		return r.Game.Chi(seat, t, action.Tiles[0], action.Tiles[1])
+	case ActionPong:
+		return r.Game.Pong(seat, t)
+	case ActionGang:
+		if len(action.Tiles) > 0 {
+			_, _, err := r.Game.GangFromHand(seat, t, action.Tiles[0])
+			return err
+		}
+		_, _, err := r.Game.GangFromDiscard(seat, t)
+		return err
+	case ActionHu:
+		return r.Game.Hu(seat, t)
+	case ActionEndRound:
+		return r.Game.End(seat, t)
+	default:
+		return errors.New("action is invalid")
+	}
+}
+
+func (r *Room) reduce(playerID string, action Action) error {
 	seat := r.seat(playerID)
 	if seat == -1 {
-		return errors.New("forbidden")
+		return errForbidden
 	}
-	//t := time.Now()
-	switch action.Type {
-
+	if action.Nonce != r.Nonce {
+		return errors.New("invalid nonce")
 	}
+	t := time.Now()
+	err := r.reduceGame(seat, t, action)
+	if err != nil {
+		return err
+	}
+	r.Nonce++
+	r.broadcast()
 	return nil
 }
 
@@ -146,6 +205,18 @@ func (r *Room) removePlayer(playerID string) {
 			return
 		}
 	}
+}
+
+func (r *Room) nextRound() error {
+	if r.Game == nil {
+		r.Game = new(mahjong.Game)
+		r.Phase = PhaseInProgress
+	}
+	err := r.Game.NextRound(rand.Int63())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewRoom(host Player) *Room {

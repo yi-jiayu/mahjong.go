@@ -120,11 +120,11 @@ type Hand struct {
 }
 
 // View returns another player's view of a hand.
-func (h Hand) View() HandView {
-	return HandView{
+func (h Hand) View() Hand {
+	return Hand{
 		Flowers:   h.Flowers,
 		Revealed:  h.Revealed,
-		Concealed: h.Concealed.Cardinality(),
+		Concealed: TileBag{"": h.Concealed.Cardinality()},
 	}
 }
 
@@ -178,18 +178,25 @@ type Result struct {
 
 // Game represents a mahjong game.
 type Game struct {
-	CurrentRound   *Round
+	// The current round.
+	*Round
+
 	PreviousRounds []Round
 }
 
-func (g *Game) NextRound() error {
-	if g.CurrentRound.Phase != PhaseFinished {
+func (g *Game) NextRound(seed int64) error {
+	if g.Round == nil {
+		g.Round = new(Round)
+		g.Round.Start(seed)
+		return nil
+	}
+	if g.Round.Phase != PhaseFinished {
 		return errors.New("current round not finished")
 	}
-	dealer := g.CurrentRound.Dealer
-	wind := g.CurrentRound.Wind
-	if g.CurrentRound.Result.Winner != dealer {
-		dealer = (g.CurrentRound.Dealer + 1) % 4
+	dealer := g.Round.Dealer
+	wind := g.Round.Wind
+	if g.Round.Result.Winner != dealer {
+		dealer = (g.Round.Dealer + 1) % 4
 		if dealer == 0 {
 			wind++
 		}
@@ -198,7 +205,14 @@ func (g *Game) NextRound() error {
 		Dealer: dealer,
 		Wind:   wind,
 	}
-	g.PreviousRounds = append(g.PreviousRounds, *g.CurrentRound)
-	g.CurrentRound = nextRound
+	g.PreviousRounds = append(g.PreviousRounds, *g.Round)
+	g.Round = nextRound
+	g.Round.Start(seed)
 	return nil
+}
+
+func (g *Game) View(seat int) GameView {
+	return GameView{
+		CurrentRound: g.Round.View(seat),
+	}
 }

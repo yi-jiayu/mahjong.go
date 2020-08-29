@@ -39,7 +39,7 @@ type Round struct {
 	// Result is the outcome of the round.
 	Result Result
 
-	LastDiscardTime  time.Time
+	LastActionTime   time.Time
 	ReservedDuration time.Duration
 }
 
@@ -101,7 +101,7 @@ func (r *Round) Draw(seat int, t time.Time) (drawn Tile, flowers []Tile, err err
 		err = errors.New("wrong phase")
 		return
 	}
-	if t.Before(r.LastDiscardTime.Add(r.ReservedDuration)) {
+	if t.Before(r.LastActionTime.Add(r.ReservedDuration)) {
 		err = errors.New("cannot draw during reserved duration")
 		return
 	}
@@ -121,6 +121,7 @@ func (r *Round) Draw(seat int, t time.Time) (drawn Tile, flowers []Tile, err err
 		Tile:    drawn,
 		Flowers: flowers,
 	})
+	r.LastActionTime = t
 	return
 }
 
@@ -165,7 +166,7 @@ func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 	if !hand.Concealed.Contains(tile1) || !hand.Concealed.Contains(tile2) {
 		return errors.New("missing tiles")
 	}
-	if t.Before(r.LastDiscardTime.Add(r.ReservedDuration)) {
+	if t.Before(r.LastActionTime.Add(r.ReservedDuration)) {
 		return errors.New("cannot chi during reserved duration")
 	}
 	hand.Concealed.Remove(tile1)
@@ -447,28 +448,17 @@ func (r *Round) View(seat int) RoundView {
 	for i, event := range r.Events {
 		events[i] = event.View()
 	}
-	var hand Hand
-	var hands []HandView
-	if 0 <= seat && seat < 4 {
-		hand = r.Hands[seat]
-		hands = []HandView{
-			r.Hands[(seat+1)%4].View(),
-			r.Hands[(seat+2)%4].View(),
-			r.Hands[(seat+3)%4].View(),
-		}
-	} else {
-		seat = 0
-		hands = []HandView{
-			r.Hands[0].View(),
-			r.Hands[1].View(),
-			r.Hands[2].View(),
-			r.Hands[3].View(),
+	hands := make([]Hand, 4)
+	for i, hand := range r.Hands {
+		if seat == i {
+			hands[i] = hand
+		} else {
+			hands[i] = hand.View()
 		}
 	}
 	return RoundView{
 		Seat:             seat,
 		Scores:           r.Scores,
-		Hand:             hand,
 		Hands:            hands,
 		DrawsLeft:        len(r.Wall) - 16,
 		Discards:         r.Discards,
@@ -478,7 +468,7 @@ func (r *Round) View(seat int) RoundView {
 		Phase:            r.Phase,
 		Events:           events,
 		Result:           r.Result,
-		LastDiscardTime:  r.LastDiscardTime,
+		LastDiscardTime:  r.LastActionTime,
 		ReservedDuration: r.ReservedDuration,
 	}
 }

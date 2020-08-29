@@ -59,8 +59,8 @@ func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 		room := NewRoom(player)
 		err = roomRepository.Save(room)
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
 			fmt.Printf("error saving room: %v", err)
+			c.Status(http.StatusInternalServerError)
 			return
 		}
 		c.String(http.StatusCreated, room.ID)
@@ -70,17 +70,7 @@ func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString("playerID")
-		roomID := c.Param("roomID")
-		room, err := roomRepository.Get(roomID)
-		if errors.Is(err, errNotFound) {
-			c.Status(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			c.Status(http.StatusInternalServerError)
-			fmt.Printf("error getting room: %v", err)
-			return
-		}
+		room := c.MustGet("room").(*Room)
 		name, err := getName(c)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
@@ -98,8 +88,8 @@ func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 			}
 			err = roomRepository.Save(r)
 			if err != nil {
+				fmt.Printf("error saving room: %v", err)
 				c.Status(http.StatusInternalServerError)
-				fmt.Printf("error getting room: %v", err)
 				return
 			}
 		})
@@ -113,23 +103,13 @@ func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 func leaveRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString("playerID")
-		roomID := c.Param("roomID")
-		room, err := roomRepository.Get(roomID)
-		if errors.Is(err, errNotFound) {
-			c.Status(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			c.Status(http.StatusInternalServerError)
-			fmt.Printf("error getting room: %v", err)
-			return
-		}
+		room := c.MustGet("room").(*Room)
 		room.WithLock(func(r *Room) {
 			room.removePlayer(playerID)
-			err = roomRepository.Save(r)
+			err := roomRepository.Save(r)
 			if err != nil {
+				fmt.Printf("error saving room: %v", err)
 				c.Status(http.StatusInternalServerError)
-				fmt.Printf("error getting room: %v", err)
 				return
 			}
 		})
@@ -139,17 +119,7 @@ func leaveRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 func subscribeRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString("playerID")
-		roomID := c.Param("roomID")
-		room, err := roomRepository.Get(roomID)
-		if errors.Is(err, errNotFound) {
-			c.Status(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			c.Status(http.StatusInternalServerError)
-			fmt.Printf("error getting room: %v", err)
-			return
-		}
+		room := c.MustGet("room").(*Room)
 		ch := make(chan string, 1)
 		room.AddClient(playerID, ch)
 
@@ -169,10 +139,57 @@ func subscribeRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	}
 }
 
+func roomActionsHandler(roomRepository RoomRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		playerID := c.GetString("playerID")
+		room := c.MustGet("room").(*Room)
+		var action Action
+		err := c.ShouldBindJSON(&action)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+		room.WithLock(func(r *Room) {
+			err = room.reduce(playerID, action)
+			if err != nil {
+				c.String(http.StatusBadRequest, err.Error())
+				return
+			}
+			err = roomRepository.Save(r)
+			if err != nil {
+				fmt.Printf("error saving room: %v", err)
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+		})
+		if err != nil {
+			return
+		}
+	}
+}
+
 func configure(r *gin.Engine, roomRepository RoomRepository) {
 	r.Use(setPlayerID)
 	r.POST("/rooms", createRoomHandler(roomRepository))
-	r.POST("/rooms/:roomID/players", joinRoomHandler(roomRepository))
-	r.DELETE("/rooms/:roomID/players", leaveRoomHandler(roomRepository))
-	r.GET("/rooms/:roomID/live", subscribeRoomHandler(roomRepository))
+	room := r.Group("/rooms/:roomID")
+	room.Use(func(c *gin.Context) {
+		roomID := c.Param("roomID")
+		room, err := roomRepository.Get(roomID)
+		if errors.Is(err, errNotFound) {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			fmt.Printf("error getting room: %v", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		c.Set("room", room)
+		c.Next()
+	})
+	{
+		room.POST("/players", joinRoomHandler(roomRepository))
+		room.DELETE("/players", leaveRoomHandler(roomRepository))
+		room.GET("/live", subscribeRoomHandler(roomRepository))
+		room.POST("/actions", roomActionsHandler(roomRepository))
+	}
 }

@@ -4,15 +4,6 @@ import (
 	"time"
 )
 
-// HandView represents a player's view of another player's hand.
-type HandView struct {
-	Flowers  []Tile `json:"flowers"`
-	Revealed []Meld `json:"revealed"`
-
-	// Concealed is how many concealed tiles the player has.
-	Concealed int `json:"concealed"`
-}
-
 // EventType represents the type of an event.
 type EventType string
 
@@ -44,8 +35,7 @@ type EventView struct {
 type RoundView struct {
 	Seat             int           `json:"seat"`
 	Scores           []int         `json:"scores"`
-	Hand             Hand          `json:"hand"`
-	Hands            []HandView    `json:"hands"`
+	Hands            []Hand        `json:"hands"`
 	DrawsLeft        int           `json:"draws_left"`
 	Discards         []Tile        `json:"discards"`
 	Wind             Direction     `json:"wind"`
@@ -60,6 +50,6 @@ type RoundView struct {
 
 // GameView represents a player's view of the game.
 type GameView struct {
-	CurrentRound         RoundView
-	PreviousRoundResults []Result
+	CurrentRound RoundView `json:"current_round"`
+	Results      []Result  `json:"results"`
 }

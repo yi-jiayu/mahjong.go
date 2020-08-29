@@ -25,7 +25,7 @@ func TestRound_Draw(t *testing.T) {
 		r := &Round{
 			Turn:             0,
 			Phase:            PhaseDraw,
-			LastDiscardTime:  oneSecondAgo,
+			LastActionTime:   oneSecondAgo,
 			ReservedDuration: 2 * time.Second,
 		}
 		_, _, err := r.Draw(0, time.Now())
@@ -54,6 +54,7 @@ func TestRound_Draw(t *testing.T) {
 			Tile:    drawn,
 			Flowers: flowers,
 		}}, r.Events)
+		assert.Equal(t, now, r.LastActionTime)
 	})
 	t.Run("successful draw with flowers", func(t *testing.T) {
 		seat := 0
@@ -179,7 +180,7 @@ func TestRound_Chi(t *testing.T) {
 			Phase:            PhaseDraw,
 			Discards:         []Tile{TileBamboo4, TileBamboo3},
 			Hands:            []Hand{{Concealed: NewTileBag([]Tile{TileWindsWest, TileBamboo1, TileBamboo2})}},
-			LastDiscardTime:  oneSecondAgo,
+			LastActionTime:   oneSecondAgo,
 			ReservedDuration: 2 * time.Second,
 		}
 		err := r.Chi(0, time.Now(), TileBamboo1, TileBamboo2)
@@ -530,11 +531,11 @@ func TestRound_View(t *testing.T) {
 			RoundView{
 				Seat:   seat,
 				Scores: r.Scores,
-				Hand:   r.Hands[seat],
-				Hands: []HandView{
-					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: 13},
-					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: 13},
-					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: 13},
+				Hands: []Hand{
+					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
+					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"16四筒": 1, "27六索": 1, "29八索": 1, "34四万": 2, "35五万": 1, "36六万": 2, "38八万": 2, "43北风": 1, "44红中": 1, "46白板": 1}},
+					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
+					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 				},
 				DrawsLeft: len(r.Wall) - 16,
 				Discards:  r.Discards,
@@ -549,7 +550,7 @@ func TestRound_View(t *testing.T) {
 				}},
 
 				Result:           r.Result,
-				LastDiscardTime:  r.LastDiscardTime,
+				LastDiscardTime:  r.LastActionTime,
 				ReservedDuration: r.ReservedDuration,
 			},
 			view,
@@ -560,12 +561,13 @@ func TestRound_View(t *testing.T) {
 		assert.Equal(
 			t,
 			RoundView{
+				Seat:   -1,
 				Scores: r.Scores,
-				Hands: []HandView{
-					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: 13},
-					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: 13},
-					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: 13},
-					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: 13},
+				Hands: []Hand{
+					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
+					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
+					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
+					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 				},
 				DrawsLeft: len(r.Wall) - 16,
 				Discards:  r.Discards,
@@ -579,7 +581,7 @@ func TestRound_View(t *testing.T) {
 					Tiles: []Tile{TileBamboo1},
 				}},
 				Result:           r.Result,
-				LastDiscardTime:  r.LastDiscardTime,
+				LastDiscardTime:  r.LastActionTime,
 				ReservedDuration: r.ReservedDuration,
 			},
 			view,
