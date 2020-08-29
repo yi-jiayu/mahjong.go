@@ -147,6 +147,7 @@ func roomActionsHandler(roomRepository RoomRepository) gin.HandlerFunc {
 		err := c.ShouldBindJSON(&action)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
+			return
 		}
 		room.WithLock(func(r *Room) {
 			err = room.reduce(playerID, action)

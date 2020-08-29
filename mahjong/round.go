@@ -426,6 +426,29 @@ func (r *Round) Start(seed int64) {
 	r.Phase = PhaseDiscard
 }
 
+// Next returns a new round, setting the dealer and the prevailing wind
+// depending on the outcome of this round.
+func (r *Round) Next() (*Round, error) {
+	if r.Phase != PhaseFinished {
+		return nil, errors.New("unfinished")
+	}
+	dealer := r.Dealer
+	wind := r.Wind
+	if r.Result.Winner != dealer {
+		if dealer == 3 && wind == DirectionNorth {
+			return nil, errors.New("no more rounds")
+		}
+		dealer = (r.Dealer + 1) % 4
+		if dealer == 0 {
+			wind++
+		}
+	}
+	return &Round{
+		Dealer: dealer,
+		Wind:   wind,
+	}, nil
+}
+
 // End ends a round in a draw. Only the player who drew the last available tile
 // from the wall may initiate this action.
 func (r *Round) End(seat int, t time.Time) error {

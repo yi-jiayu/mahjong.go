@@ -719,3 +719,61 @@ func TestRound_End(t *testing.T) {
 		}, r.Result)
 	})
 }
+
+func TestRound_Next(t *testing.T) {
+	t.Run("cannot create next round when current round is not finished", func(t *testing.T) {
+		r := &Round{Phase: PhaseDiscard}
+		_, err := r.Next()
+		assert.EqualError(t, err, "unfinished")
+	})
+	t.Run("dealer does not win and dealer moves on", func(t *testing.T) {
+		r := &Round{
+			Phase:  PhaseFinished,
+			Dealer: 0,
+			Result: Result{
+				Winner: 2,
+			},
+		}
+		next, err := r.Next()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, next.Dealer)
+	})
+	t.Run("dealer wins and remains dealer", func(t *testing.T) {
+		r := &Round{
+			Phase:  PhaseFinished,
+			Dealer: 2,
+			Result: Result{
+				Winner: 2,
+			},
+		}
+		next, err := r.Next()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, next.Dealer)
+	})
+	t.Run("dealer moves on and prevailing wind changes", func(t *testing.T) {
+		r := &Round{
+			Phase:  PhaseFinished,
+			Dealer: 3,
+			Wind:   DirectionEast,
+			Result: Result{
+				Winner: 0,
+			},
+		}
+		next, err := r.Next()
+		assert.NoError(t, err)
+		assert.Equal(t, 0, next.Dealer)
+		assert.Equal(t, DirectionSouth, next.Wind)
+	})
+	t.Run("no more rounds", func(t *testing.T) {
+		r := &Round{
+			Phase:  PhaseFinished,
+			Dealer: 3,
+			Wind:   DirectionNorth,
+			Result: Result{
+				Winner: 0,
+			},
+		}
+		_, err := r.Next()
+		assert.EqualError(t, err, "no more rounds")
+	})
+}

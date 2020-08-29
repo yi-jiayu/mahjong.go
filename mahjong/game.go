@@ -1,9 +1,5 @@
 package mahjong
 
-import (
-	"errors"
-)
-
 // MeldType represents the type of a melded set.
 type MeldType int
 
@@ -174,45 +170,4 @@ type Result struct {
 
 	// WinningTiles is the set of flowers and tiles belonging to the winner.
 	WinningTiles []Tile `json:"winning_tiles"`
-}
-
-// Game represents a mahjong game.
-type Game struct {
-	// The current round.
-	*Round
-
-	PreviousRounds []Round
-}
-
-func (g *Game) NextRound(seed int64) error {
-	if g.Round == nil {
-		g.Round = new(Round)
-		g.Round.Start(seed)
-		return nil
-	}
-	if g.Round.Phase != PhaseFinished {
-		return errors.New("current round not finished")
-	}
-	dealer := g.Round.Dealer
-	wind := g.Round.Wind
-	if g.Round.Result.Winner != dealer {
-		dealer = (g.Round.Dealer + 1) % 4
-		if dealer == 0 {
-			wind++
-		}
-	}
-	nextRound := &Round{
-		Dealer: dealer,
-		Wind:   wind,
-	}
-	g.PreviousRounds = append(g.PreviousRounds, *g.Round)
-	g.Round = nextRound
-	g.Round.Start(seed)
-	return nil
-}
-
-func (g *Game) View(seat int) GameView {
-	return GameView{
-		CurrentRound: g.Round.View(seat),
-	}
 }

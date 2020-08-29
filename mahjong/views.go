@@ -47,9 +47,3 @@ type RoundView struct {
 	LastDiscardTime  time.Time     `json:"last_discard_time"`
 	ReservedDuration time.Duration `json:"reserved_duration"`
 }
-
-// GameView represents a player's view of the game.
-type GameView struct {
-	CurrentRound RoundView `json:"current_round"`
-	Results      []Result  `json:"results"`
-}

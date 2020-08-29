@@ -32,7 +32,7 @@ type Room struct {
 	Nonce   int
 	Phase   Phase
 	Players []Player
-	Game    *mahjong.Game
+	Round   *mahjong.Round
 
 	sync.RWMutex
 
@@ -41,11 +41,11 @@ type Room struct {
 }
 
 type RoomView struct {
-	ID      string            `json:"id"`
-	Nonce   int               `json:"nonce"`
-	Phase   Phase             `json:"phase"`
-	Players []Player          `json:"players"`
-	Game    *mahjong.GameView `json:"game"`
+	ID      string             `json:"id"`
+	Nonce   int                `json:"nonce"`
+	Phase   Phase              `json:"phase"`
+	Players []Player           `json:"players"`
+	Round   *mahjong.RoundView `json:"round"`
 }
 
 func (r *Room) WithLock(f func(r *Room)) {
@@ -78,8 +78,8 @@ func (r *Room) view(playerID string) RoomView {
 		Players: r.Players,
 	}
 	if r.Phase == PhaseInProgress {
-		gameView := r.Game.View(r.seat(playerID))
-		view.Game = &gameView
+		gameView := r.Round.View(r.seat(playerID))
+		view.Round = &gameView
 	}
 	return view
 }
@@ -101,53 +101,55 @@ func (r *Room) addPlayer(player Player) error {
 	return nil
 }
 
+type ActionType string
+
 const (
-	ActionNextRound = "next"
-	ActionDraw      = "draw"
-	ActionDiscard   = "discard"
-	ActionChi       = "chi"
-	ActionPong      = "pong"
-	ActionGang      = "gang"
-	ActionHu        = "hu"
-	ActionEndRound  = "end"
+	ActionNextRound ActionType = "next"
+	ActionDraw      ActionType = "draw"
+	ActionDiscard   ActionType = "discard"
+	ActionChi       ActionType = "chi"
+	ActionPong      ActionType = "pong"
+	ActionGang      ActionType = "gang"
+	ActionHu        ActionType = "hu"
+	ActionEndRound  ActionType = "end"
 )
 
 type Action struct {
 	Nonce int            `json:"nonce"`
-	Type  string         `json:"type"`
+	Type  ActionType     `json:"type"`
 	Tiles []mahjong.Tile `json:"tiles"`
 }
 
-func (r *Room) reduceGame(seat int, t time.Time, action Action) error {
+func (r *Room) reduceRound(seat int, t time.Time, action Action) error {
 	switch action.Type {
 	case ActionNextRound:
 		return r.nextRound()
 	case ActionDraw:
-		_, _, err := r.Game.Draw(seat, t)
+		_, _, err := r.Round.Draw(seat, t)
 		return err
 	case ActionDiscard:
 		if len(action.Tiles) < 1 {
 			return errors.New("tiles is required")
 		}
-		return r.Game.Discard(seat, t, action.Tiles[0])
+		return r.Round.Discard(seat, t, action.Tiles[0])
 	case ActionChi:
 		if len(action.Tiles) < 2 {
 			return errors.New("tiles is too short")
 		}
-		return r.Game.Chi(seat, t, action.Tiles[0], action.Tiles[1])
+		return r.Round.Chi(seat, t, action.Tiles[0], action.Tiles[1])
 	case ActionPong:
-		return r.Game.Pong(seat, t)
+		return r.Round.Pong(seat, t)
 	case ActionGang:
 		if len(action.Tiles) > 0 {
-			_, _, err := r.Game.GangFromHand(seat, t, action.Tiles[0])
+			_, _, err := r.Round.GangFromHand(seat, t, action.Tiles[0])
 			return err
 		}
-		_, _, err := r.Game.GangFromDiscard(seat, t)
+		_, _, err := r.Round.GangFromDiscard(seat, t)
 		return err
 	case ActionHu:
-		return r.Game.Hu(seat, t)
+		return r.Round.Hu(seat, t)
 	case ActionEndRound:
-		return r.Game.End(seat, t)
+		return r.Round.End(seat, t)
 	default:
 		return errors.New("action is invalid")
 	}
@@ -162,7 +164,7 @@ func (r *Room) reduce(playerID string, action Action) error {
 		return errors.New("invalid nonce")
 	}
 	t := time.Now()
-	err := r.reduceGame(seat, t, action)
+	err := r.reduceRound(seat, t, action)
 	if err != nil {
 		return err
 	}
@@ -208,14 +210,17 @@ func (r *Room) removePlayer(playerID string) {
 }
 
 func (r *Room) nextRound() error {
-	if r.Game == nil {
-		r.Game = new(mahjong.Game)
+	if r.Round == nil {
 		r.Phase = PhaseInProgress
+		r.Round = new(mahjong.Round)
+	} else {
+		next, err := r.Round.Next()
+		if err != nil {
+			return err
+		}
+		r.Round = next
 	}
-	err := r.Game.NextRound(rand.Int63())
-	if err != nil {
-		return err
-	}
+	r.Round.Start(rand.Int63())
 	return nil
 }
 
