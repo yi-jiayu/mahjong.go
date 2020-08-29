@@ -527,8 +527,10 @@ func TestRound_View(t *testing.T) {
 		Wind:             DirectionNorth,
 		ReservedDuration: 2 * time.Second,
 	}
-	r.Start(0)
-	_ = r.Discard(1, time.Time{}, TileBamboo1)
+	var ms int64 = 1598707747116
+	now := time.Unix(ms/1000, (ms%1000)*1e6)
+	r.Start(0, now)
+	_ = r.Discard(1, now, TileBamboo1)
 	t.Run("view from seat", func(t *testing.T) {
 		seat := 1
 		view := r.View(seat)
@@ -551,13 +553,14 @@ func TestRound_View(t *testing.T) {
 				Phase:     r.Phase,
 				Events: []EventView{{
 					Type:  EventDiscard,
+					Time:  now,
 					Seat:  1,
 					Tiles: []Tile{TileBamboo1},
 				}},
 
 				Result:           r.Result,
-				LastDiscardTime:  r.LastActionTime,
-				ReservedDuration: r.ReservedDuration,
+				LastActionTime:   ms,
+				ReservedDuration: r.ReservedDuration.Milliseconds(),
 			},
 			view,
 		)
@@ -583,12 +586,13 @@ func TestRound_View(t *testing.T) {
 				Phase:     r.Phase,
 				Events: []EventView{{
 					Type:  EventDiscard,
+					Time:  now,
 					Seat:  1,
 					Tiles: []Tile{TileBamboo1},
 				}},
 				Result:           r.Result,
-				LastDiscardTime:  r.LastActionTime,
-				ReservedDuration: r.ReservedDuration,
+				LastActionTime:   ms,
+				ReservedDuration: r.ReservedDuration.Milliseconds(),
 			},
 			view,
 		)
@@ -669,7 +673,7 @@ func TestRound_distributeTiles(t *testing.T) {
 
 func TestRound_Start(t *testing.T) {
 	r := new(Round)
-	r.Start(0)
+	r.Start(0, time.Now())
 	assert.Equal(t, r.Dealer, r.Turn)
 	assert.Equal(t, r.Phase, PhaseDiscard)
 }

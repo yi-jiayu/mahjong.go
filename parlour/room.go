@@ -220,7 +220,7 @@ func (r *Room) nextRound() error {
 		}
 		r.Round = next
 	}
-	r.Round.Start(rand.Int63())
+	r.Round.Start(rand.Int63(), time.Now())
 	return nil
 }
 

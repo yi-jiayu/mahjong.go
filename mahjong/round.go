@@ -419,11 +419,13 @@ func (r *Round) distributeTiles() {
 	return
 }
 
-func (r *Round) Start(seed int64) {
+func (r *Round) Start(seed int64, t time.Time) {
 	r.Wall = newWall(rand.New(rand.NewSource(seed)))
 	r.distributeTiles()
 	r.Turn = r.Dealer
 	r.Phase = PhaseDiscard
+	r.Discards = []Tile{}
+	r.LastActionTime = t
 }
 
 // Next returns a new round, setting the dealer and the prevailing wind
@@ -497,8 +499,8 @@ func (r *Round) View(seat int) RoundView {
 		Phase:            r.Phase,
 		Events:           events,
 		Result:           r.Result,
-		LastDiscardTime:  r.LastActionTime,
-		ReservedDuration: r.ReservedDuration,
+		LastActionTime:   r.LastActionTime.UnixNano() / 1e6,
+		ReservedDuration: r.ReservedDuration.Milliseconds(),
 	}
 }
 
