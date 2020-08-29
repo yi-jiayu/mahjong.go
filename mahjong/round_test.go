@@ -122,6 +122,7 @@ func TestRound_Discard(t *testing.T) {
 			Time: now,
 			Tile: TileWindsNorth,
 		}}, r.Events)
+		assert.Equal(t, now, r.LastActionTime)
 	})
 }
 
@@ -210,6 +211,7 @@ func TestRound_Chi(t *testing.T) {
 			LastDiscard: TileBamboo3,
 			Tiles:       [2]Tile{TileBamboo1, TileBamboo2},
 		}}, r.Events)
+		assert.Equal(t, now, r.LastActionTime)
 	})
 }
 
@@ -267,6 +269,7 @@ func TestRound_Pong(t *testing.T) {
 			Tile:         TileDragonsRed,
 			PreviousTurn: 3,
 		}}, r.Events)
+		assert.Equal(t, now, r.LastActionTime)
 	})
 }
 
@@ -330,6 +333,7 @@ func TestRound_GangFromDiscard(t *testing.T) {
 			Time: now,
 			Tile: TileDragonsRed,
 		}}, r.Events)
+		assert.Equal(t, now, r.LastActionTime)
 	})
 }
 
@@ -382,6 +386,7 @@ func TestRound_GangFromHand(t *testing.T) {
 			Time: now,
 			Tile: TileDragonsRed,
 		}}, r.Events)
+		assert.Equal(t, now, r.LastActionTime)
 	})
 	t.Run("successful promote pong to gang", func(t *testing.T) {
 		seat := 0
@@ -416,6 +421,7 @@ func TestRound_GangFromHand(t *testing.T) {
 			Time: now,
 			Tile: TileDragonsRed,
 		}}, r.Events)
+		assert.Equal(t, now, r.LastActionTime)
 	})
 }
 

@@ -144,6 +144,7 @@ func (r *Round) Discard(seat int, t time.Time, tile Tile) error {
 		Time: t,
 		Tile: tile,
 	})
+	r.LastActionTime = t
 	return nil
 }
 
@@ -187,6 +188,7 @@ func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 		LastDiscard: tile0,
 		Tiles:       [2]Tile{tile1, tile2},
 	})
+	r.LastActionTime = t
 	return nil
 }
 
@@ -218,6 +220,7 @@ func (r *Round) Pong(seat int, t time.Time) error {
 	})
 	r.Turn = seat
 	r.Phase = PhaseDiscard
+	r.LastActionTime = t
 	return nil
 }
 
@@ -255,6 +258,7 @@ func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flower
 	})
 	r.Turn = seat
 	r.Phase = PhaseDiscard
+	r.LastActionTime = t
 	return
 }
 
@@ -282,6 +286,7 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 			Time: t,
 			Tile: tile,
 		})
+		r.LastActionTime = t
 		return
 	}
 	for i, meld := range hand.Revealed {
@@ -296,6 +301,7 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 				Time: t,
 				Tile: tile,
 			})
+			r.LastActionTime = t
 			return
 		}
 	}
