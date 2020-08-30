@@ -50,7 +50,7 @@ func TestChiEvent_UndoRedo(t *testing.T) {
 			Turn:     0,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileBamboo4, TileBamboo3},
-			Hands: []Hand{{
+			Hands: [4]Hand{{
 				Revealed:  []Meld{},
 				Concealed: NewTileBag([]Tile{TileWindsWest, TileBamboo1, TileBamboo2}),
 			}},
@@ -61,7 +61,7 @@ func TestChiEvent_UndoRedo(t *testing.T) {
 			Turn:     0,
 			Phase:    PhaseDiscard,
 			Discards: []Tile{TileBamboo4},
-			Hands: []Hand{{
+			Hands: [4]Hand{{
 				Revealed: []Meld{{
 					Type:  MeldChi,
 					Tiles: []Tile{TileBamboo1, TileBamboo2, TileBamboo3},

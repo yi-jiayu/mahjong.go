@@ -3,8 +3,8 @@ package mahjong
 // RoundView represents a player's view of a round.
 type RoundView struct {
 	Seat      int         `json:"seat"`
-	Scores    []int       `json:"scores"`
-	Hands     []Hand      `json:"hands"`
+	Scores    [4]int      `json:"scores"`
+	Hands     [4]Hand     `json:"hands"`
 	DrawsLeft int         `json:"draws_left"`
 	Discards  []Tile      `json:"discards"`
 	Wind      Direction   `json:"wind"`

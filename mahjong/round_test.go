@@ -37,7 +37,7 @@ func TestRound_Draw(t *testing.T) {
 			Wall:  []Tile{TileBamboo1, TileDots5},
 			Turn:  seat,
 			Phase: PhaseDraw,
-			Hands: []Hand{{Concealed: NewTileBag([]Tile{TileWindsWest})}},
+			Hands: [4]Hand{{Concealed: NewTileBag([]Tile{TileWindsWest})}},
 		}
 		now := time.Now()
 		drawn, flowers, err := r.Draw(seat, now)
@@ -62,7 +62,7 @@ func TestRound_Draw(t *testing.T) {
 			Wall:  []Tile{TileGentlemen1, TileBamboo1, TileDots5, TileGentlemen2},
 			Turn:  seat,
 			Phase: PhaseDraw,
-			Hands: []Hand{{Concealed: NewTileBag([]Tile{TileWindsWest})}},
+			Hands: [4]Hand{{Concealed: NewTileBag([]Tile{TileWindsWest})}},
 		}
 		now := time.Now()
 		drawn, flowers, err := r.Draw(seat, now)
@@ -97,7 +97,7 @@ func TestRound_Discard(t *testing.T) {
 		r := &Round{
 			Turn:  0,
 			Phase: PhaseDiscard,
-			Hands: []Hand{{}},
+			Hands: [4]Hand{{}},
 		}
 		err := r.Discard(0, time.Now(), TileDragonsRed)
 		assert.EqualError(t, err, "missing tiles")
@@ -108,7 +108,7 @@ func TestRound_Discard(t *testing.T) {
 			Turn:     seat,
 			Phase:    PhaseDiscard,
 			Discards: []Tile{TileWindsEast},
-			Hands:    []Hand{{Concealed: NewTileBag([]Tile{TileCharacters1, TileWindsNorth})}},
+			Hands:    [4]Hand{{Concealed: NewTileBag([]Tile{TileCharacters1, TileWindsNorth})}},
 		}
 		now := time.Now()
 		err := r.Discard(seat, now, TileWindsNorth)
@@ -168,7 +168,7 @@ func TestRound_Chi(t *testing.T) {
 			Turn:     0,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileBamboo3},
-			Hands:    []Hand{{}},
+			Hands:    [4]Hand{{}},
 		}
 		err := r.Chi(0, time.Now(), TileBamboo2, TileBamboo4)
 		assert.EqualError(t, err, "missing tiles")
@@ -180,7 +180,7 @@ func TestRound_Chi(t *testing.T) {
 			Turn:             0,
 			Phase:            PhaseDraw,
 			Discards:         []Tile{TileBamboo4, TileBamboo3},
-			Hands:            []Hand{{Concealed: NewTileBag([]Tile{TileWindsWest, TileBamboo1, TileBamboo2})}},
+			Hands:            [4]Hand{{Concealed: NewTileBag([]Tile{TileWindsWest, TileBamboo1, TileBamboo2})}},
 			LastActionTime:   oneSecondAgo,
 			ReservedDuration: 2 * time.Second,
 		}
@@ -193,7 +193,7 @@ func TestRound_Chi(t *testing.T) {
 			Turn:     0,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileBamboo4, TileBamboo3},
-			Hands:    []Hand{{Concealed: NewTileBag([]Tile{TileWindsWest, TileBamboo1, TileBamboo2})}},
+			Hands:    [4]Hand{{Concealed: NewTileBag([]Tile{TileWindsWest, TileBamboo1, TileBamboo2})}},
 		}
 		err := r.Chi(0, now, TileBamboo1, TileBamboo2)
 		assert.NoError(t, err)
@@ -239,7 +239,7 @@ func TestRound_Pong(t *testing.T) {
 			Turn:     0,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileDragonsRed},
-			Hands:    []Hand{{}},
+			Hands:    [4]Hand{{}},
 		}
 		err := r.Pong(0, time.Now())
 		assert.EqualError(t, err, "missing tiles")
@@ -250,7 +250,7 @@ func TestRound_Pong(t *testing.T) {
 			Turn:     3,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileDots1, TileDragonsRed},
-			Hands:    []Hand{{}, {Concealed: NewTileBag([]Tile{TileWindsWest, TileDragonsRed, TileDragonsRed})}},
+			Hands:    [4]Hand{{}, {Concealed: NewTileBag([]Tile{TileWindsWest, TileDragonsRed, TileDragonsRed})}},
 		}
 		now := time.Now()
 		err := r.Pong(seat, now)
@@ -297,7 +297,7 @@ func TestRound_GangFromDiscard(t *testing.T) {
 			Turn:     0,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileDragonsRed},
-			Hands:    []Hand{{Concealed: TileBag{TileDragonsRed: 2}}},
+			Hands:    [4]Hand{{Concealed: TileBag{TileDragonsRed: 2}}},
 		}
 		_, _, err := r.GangFromDiscard(0, time.Now())
 		assert.EqualError(t, err, "missing tiles")
@@ -309,7 +309,7 @@ func TestRound_GangFromDiscard(t *testing.T) {
 			Turn:     3,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileDots1, TileDragonsRed},
-			Hands: []Hand{{}, {
+			Hands: [4]Hand{{}, {
 				Flowers:   []Tile{TileCat},
 				Concealed: NewTileBag([]Tile{TileWindsWest, TileDragonsRed, TileDragonsRed, TileDragonsRed}),
 			}},
@@ -352,7 +352,7 @@ func TestRound_GangFromHand(t *testing.T) {
 		r := &Round{
 			Turn:  0,
 			Phase: PhaseDiscard,
-			Hands: []Hand{{}},
+			Hands: [4]Hand{{}},
 		}
 		_, _, err := r.GangFromHand(0, time.Now(), TileDragonsRed)
 		assert.EqualError(t, err, "missing tiles")
@@ -363,7 +363,7 @@ func TestRound_GangFromHand(t *testing.T) {
 			Wall:  []Tile{TileCharacters1, TileDots4, TileCat},
 			Turn:  0,
 			Phase: PhaseDiscard,
-			Hands: []Hand{{
+			Hands: [4]Hand{{
 				Flowers:   []Tile{TileSeasons1},
 				Concealed: TileBag{TileDragonsRed: 4},
 			}},
@@ -394,7 +394,7 @@ func TestRound_GangFromHand(t *testing.T) {
 			Wall:  []Tile{TileCharacters1, TileDots4, TileCat},
 			Turn:  0,
 			Phase: PhaseDiscard,
-			Hands: []Hand{{
+			Hands: [4]Hand{{
 				Flowers: []Tile{TileSeasons1},
 				Revealed: []Meld{{
 					Type:  MeldPong,
@@ -445,7 +445,7 @@ func TestRound_Hu(t *testing.T) {
 		r := &Round{
 			Turn:  0,
 			Phase: PhaseDiscard,
-			Hands: []Hand{{Concealed: TileBag{}}},
+			Hands: [4]Hand{{Concealed: TileBag{}}},
 		}
 		err := r.Hu(0, time.Now())
 		assert.EqualError(t, err, "missing tiles")
@@ -455,7 +455,7 @@ func TestRound_Hu(t *testing.T) {
 		r := &Round{
 			Turn:  seat,
 			Phase: PhaseDiscard,
-			Hands: []Hand{{},
+			Hands: [4]Hand{{},
 				{
 					Flowers:  []Tile{TileGentlemen1, TileCat},
 					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
@@ -507,7 +507,7 @@ func TestRound_Hu(t *testing.T) {
 			Turn:     0,
 			Phase:    PhaseDraw,
 			Discards: []Tile{TileDragonsRed, TileDragonsWhite},
-			Hands: []Hand{{}, {},
+			Hands: [4]Hand{{}, {},
 				{
 					Flowers:  []Tile{TileGentlemen1, TileCat},
 					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
@@ -540,7 +540,7 @@ func TestRound_Hu(t *testing.T) {
 
 func TestRound_View(t *testing.T) {
 	r := &Round{
-		Scores:           []int{4, 2, 0, 1},
+		Scores:           [4]int{4, 2, 0, 1},
 		Dealer:           1,
 		Wind:             DirectionNorth,
 		ReservedDuration: 2 * time.Second,
@@ -557,7 +557,7 @@ func TestRound_View(t *testing.T) {
 			RoundView{
 				Seat:   seat,
 				Scores: r.Scores,
-				Hands: []Hand{
+				Hands: [4]Hand{
 					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"16四筒": 1, "27六索": 1, "29八索": 1, "34四万": 2, "35五万": 1, "36六万": 2, "38八万": 2, "43北风": 1, "44红中": 1, "46白板": 1}},
 					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
@@ -596,7 +596,7 @@ func TestRound_View(t *testing.T) {
 			RoundView{
 				Seat:   -1,
 				Scores: r.Scores,
-				Hands: []Hand{
+				Hands: [4]Hand{
 					{Flowers: []Tile{"07菊"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},

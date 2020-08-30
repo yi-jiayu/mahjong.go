@@ -65,7 +65,7 @@ func Test_score(t *testing.T) {
 	t.Run("zi mo ping hu", func(t *testing.T) {
 		round := &Round{
 			Turn:  0,
-			Hands: []Hand{{}},
+			Hands: [4]Hand{{}},
 		}
 		melds := Melds{
 			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
@@ -79,7 +79,7 @@ func Test_score(t *testing.T) {
 	t.Run("ping hu from discard", func(t *testing.T) {
 		round := &Round{
 			Turn:  2,
-			Hands: []Hand{{}},
+			Hands: [4]Hand{{}},
 		}
 		melds := Melds{
 			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
@@ -93,7 +93,7 @@ func Test_score(t *testing.T) {
 	t.Run("pong pong hu from discard", func(t *testing.T) {
 		round := &Round{
 			Turn:  2,
-			Hands: []Hand{{}},
+			Hands: [4]Hand{{}},
 		}
 		melds := []Meld{
 			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
@@ -107,7 +107,7 @@ func Test_score(t *testing.T) {
 	t.Run("flowers", func(t *testing.T) {
 		round := &Round{
 			Turn:  2,
-			Hands: []Hand{{Flowers: []Tile{TileCat, TileGentlemen1, TileGentlemen2}}},
+			Hands: [4]Hand{{Flowers: []Tile{TileCat, TileGentlemen1, TileGentlemen2}}},
 		}
 		melds := []Meld{
 			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
@@ -121,7 +121,7 @@ func Test_score(t *testing.T) {
 	t.Run("dragons", func(t *testing.T) {
 		round := &Round{
 			Turn:  2,
-			Hands: []Hand{{}},
+			Hands: [4]Hand{{}},
 		}
 		melds := []Meld{
 			{Type: MeldPong, Tiles: []Tile{TileDragonsRed, TileDragonsRed, TileDragonsRed}},
@@ -136,7 +136,7 @@ func Test_score(t *testing.T) {
 		round := &Round{
 			Dealer: 1,
 			Turn:   2,
-			Hands:  []Hand{{}},
+			Hands:  [4]Hand{{}},
 		}
 		melds := []Meld{
 			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
@@ -151,7 +151,7 @@ func Test_score(t *testing.T) {
 		round := &Round{
 			Dealer: 1,
 			Turn:   2,
-			Hands:  []Hand{{}},
+			Hands:  [4]Hand{{}},
 		}
 		melds := []Meld{
 			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
@@ -166,7 +166,7 @@ func Test_score(t *testing.T) {
 		round := &Round{
 			Dealer: 0,
 			Turn:   2,
-			Hands:  []Hand{{}},
+			Hands:  [4]Hand{{}},
 		}
 		melds := []Meld{
 			{Type: MeldPong, Tiles: []Tile{TileDots1, TileDots1, TileDots1}},
@@ -181,7 +181,7 @@ func Test_score(t *testing.T) {
 		round := &Round{
 			Dealer: 0,
 			Turn:   2,
-			Hands:  []Hand{{}},
+			Hands:  [4]Hand{{}},
 		}
 		melds := []Meld{
 			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
@@ -196,7 +196,7 @@ func Test_score(t *testing.T) {
 		round := &Round{
 			Dealer: 0,
 			Turn:   2,
-			Hands:  []Hand{{Flowers: []Tile{TileCentipede}}},
+			Hands:  [4]Hand{{Flowers: []Tile{TileCentipede}}},
 		}
 		melds := []Meld{
 			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
@@ -211,7 +211,7 @@ func Test_score(t *testing.T) {
 		round := &Round{
 			Dealer: 0,
 			Turn:   2,
-			Hands:  []Hand{{}},
+			Hands:  [4]Hand{{}},
 		}
 		melds := []Meld{
 			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},

@@ -10,10 +10,10 @@ import (
 // Round represents a round in a mahjong game.
 type Round struct {
 	// Scores contains the score for each player in the game.
-	Scores []int
+	Scores [4]int
 
 	// Hands contains the corresponding hand for each player in the game.
-	Hands []Hand
+	Hands [4]Hand
 
 	// Wall contains the remaining tiles left to be drawn.
 	Wall []Tile
@@ -356,7 +356,7 @@ func (r *Round) Hu(seat int, t time.Time) error {
 }
 
 func (r *Round) distributeTiles() {
-	r.Hands = []Hand{
+	r.Hands = [4]Hand{
 		{
 			Flowers:   []Tile{},
 			Revealed:  []Meld{},
@@ -491,7 +491,7 @@ func (r *Round) View(seat int) RoundView {
 	for i, event := range r.Events {
 		events[i] = event.View()
 	}
-	hands := make([]Hand, 4)
+	var hands [4]Hand
 	for i, hand := range r.Hands {
 		if seat == i {
 			hands[i] = hand
