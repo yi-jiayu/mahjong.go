@@ -272,7 +272,7 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 		return
 	}
 	hand := &r.Hands[seat]
-	if hand.Concealed.Count(tile) == 4 {
+	if hand.Concealed.Count(tile) > 3 {
 		hand.Concealed.RemoveN(tile, 4)
 		hand.Revealed = append(hand.Revealed, Meld{
 			Type:  MeldGang,
@@ -337,13 +337,14 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	}
 	// for now, take the first winning hand
 	// ideally we will take the highest scoring hand
-	winningHand := Melds(append(winningHands[0], r.Hands[seat].Revealed...))
-	sort.Sort(winningHand)
+	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, winningHands[0]...)
+	r.Hands[seat].Concealed = TileBag{}
+	sort.Sort(Melds(r.Hands[seat].Revealed))
 	r.Result = Result{
 		Dealer:       r.Dealer,
 		Wind:         r.Wind,
 		Winner:       seat,
-		WinningTiles: append(r.Hands[seat].Flowers, winningHand.Tiles()...),
+		WinningTiles: append(r.Hands[seat].Flowers, Melds(r.Hands[seat].Revealed).Tiles()...),
 	}
 	r.Phase = PhaseFinished
 	return nil

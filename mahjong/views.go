@@ -1,9 +1,5 @@
 package mahjong
 
-import (
-	"time"
-)
-
 // EventType represents the type of an event.
 type EventType string
 
@@ -25,7 +21,7 @@ type EventView struct {
 	Seat int `json:"seat"`
 
 	// Time is the time an event occurred.
-	Time time.Time `json:"time"`
+	Time int64 `json:"time"`
 
 	// Tiles are the tiles involved in an event.
 	Tiles []Tile `json:"tiles"`

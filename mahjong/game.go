@@ -13,8 +13,8 @@ const (
 
 // Meld represents a melded set.
 type Meld struct {
-	Type  MeldType
-	Tiles []Tile
+	Type  MeldType `json:"type"`
+	Tiles []Tile   `json:"tiles"`
 }
 
 type Melds []Meld

@@ -41,11 +41,12 @@ type Room struct {
 }
 
 type RoomView struct {
-	ID      string             `json:"id"`
-	Nonce   int                `json:"nonce"`
-	Phase   Phase              `json:"phase"`
-	Players []Player           `json:"players"`
-	Round   *mahjong.RoundView `json:"round"`
+	ID      string            `json:"id"`
+	Nonce   int               `json:"nonce"`
+	Phase   Phase             `json:"phase"`
+	Players []Player          `json:"players"`
+	Round   mahjong.RoundView `json:"round"`
+	Inside  bool              `json:"inside"`
 }
 
 func (r *Room) WithLock(f func(r *Room)) {
@@ -76,10 +77,10 @@ func (r *Room) view(playerID string) RoomView {
 		Nonce:   r.Nonce,
 		Phase:   r.Phase,
 		Players: r.Players,
+		Inside:  r.seat(playerID) != -1,
 	}
 	if r.Phase == PhaseInProgress {
-		gameView := r.Round.View(r.seat(playerID))
-		view.Round = &gameView
+		view.Round = r.Round.View(r.seat(playerID))
 	}
 	return view
 }

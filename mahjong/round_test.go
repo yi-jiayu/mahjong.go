@@ -471,6 +471,14 @@ func TestRound_Hu(t *testing.T) {
 		err := r.Hu(seat, time.Now())
 		assert.NoError(t, err)
 		assert.Equal(t, PhaseFinished, r.Phase)
+		assert.Equal(t, []Meld{
+			{Type: MeldChi, Tiles: []Tile{"15三筒", "16四筒", "17五筒"}},
+			{Type: MeldChi, Tiles: []Tile{"27六索", "28七索", "29八索"}},
+			{Type: MeldPong, Tiles: []Tile{"38八万"}},
+			{Type: MeldPong, Tiles: []Tile{"42西风"}},
+			{Type: MeldEyes, Tiles: []Tile{"46白板"}},
+		}, r.Hands[seat].Revealed)
+		assert.Equal(t, TileBag{}, r.Hands[seat].Concealed)
 		assert.Equal(t, Result{
 			Winner: seat,
 			WinningTiles: []Tile{
@@ -553,7 +561,7 @@ func TestRound_View(t *testing.T) {
 				Phase:     r.Phase,
 				Events: []EventView{{
 					Type:  EventDiscard,
-					Time:  now,
+					Time:  ms,
 					Seat:  1,
 					Tiles: []Tile{TileBamboo1},
 				}},
@@ -586,7 +594,7 @@ func TestRound_View(t *testing.T) {
 				Phase:     r.Phase,
 				Events: []EventView{{
 					Type:  EventDiscard,
-					Time:  now,
+					Time:  ms,
 					Seat:  1,
 					Tiles: []Tile{TileBamboo1},
 				}},

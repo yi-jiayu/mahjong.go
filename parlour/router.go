@@ -8,8 +8,15 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yi-jiayu/mahjong.go/mahjong"
+)
+
+const (
+	KeyPlayerID = "playerID"
+	KeyRoom     = "room"
 )
 
 // newPlayerID returns opaque string containing n bytes of entropy.
@@ -27,7 +34,7 @@ func setPlayerID(c *gin.Context) {
 	if playerID == "" {
 		playerID = newPlayerID(16)
 	}
-	c.Set("playerID", playerID)
+	c.Set(KeyPlayerID, playerID)
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie("playerID", playerID, 86400, "/", "", false, false)
 	c.Next()
@@ -46,7 +53,7 @@ func getName(c *gin.Context) (string, error) {
 
 func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		playerID := c.GetString("playerID")
+		playerID := c.GetString(KeyPlayerID)
 		name, err := getName(c)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
@@ -69,8 +76,8 @@ func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 
 func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		playerID := c.GetString("playerID")
-		room := c.MustGet("room").(*Room)
+		playerID := c.GetString(KeyPlayerID)
+		room := c.MustGet(KeyRoom).(*Room)
 		name, err := getName(c)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
@@ -102,8 +109,8 @@ func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 
 func leaveRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		playerID := c.GetString("playerID")
-		room := c.MustGet("room").(*Room)
+		playerID := c.GetString(KeyPlayerID)
+		room := c.MustGet(KeyRoom).(*Room)
 		room.WithLock(func(r *Room) {
 			room.removePlayer(playerID)
 			err := roomRepository.Save(r)
@@ -118,8 +125,8 @@ func leaveRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 
 func subscribeRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		playerID := c.GetString("playerID")
-		room := c.MustGet("room").(*Room)
+		playerID := c.GetString(KeyPlayerID)
+		room := c.MustGet(KeyRoom).(*Room)
 		ch := make(chan string, 1)
 		room.AddClient(playerID, ch)
 
@@ -141,8 +148,8 @@ func subscribeRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 
 func roomActionsHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		playerID := c.GetString("playerID")
-		room := c.MustGet("room").(*Room)
+		playerID := c.GetString(KeyPlayerID)
+		room := c.MustGet(KeyRoom).(*Room)
 		var action Action
 		err := c.ShouldBindJSON(&action)
 		if err != nil {
@@ -165,6 +172,48 @@ func roomActionsHandler(roomRepository RoomRepository) gin.HandlerFunc {
 		if err != nil {
 			return
 		}
+	}
+}
+
+func setConcealedHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		room := c.MustGet(KeyRoom).(*Room)
+		if room.Round == nil {
+			c.String(http.StatusBadRequest, "round not started")
+			return
+		}
+		seat, err := strconv.Atoi(c.Param("seat"))
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid seat")
+			return
+		}
+		if seat < 0 || 3 < seat {
+			c.String(http.StatusBadRequest, "invalid seat")
+			return
+		}
+		var tiles mahjong.TileBag
+		err = c.ShouldBindJSON(&tiles)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		room.Round.Hands[seat].Concealed = tiles
+	}
+}
+
+func prependWallHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		room := c.MustGet(KeyRoom).(*Room)
+		if room.Round == nil {
+			c.String(http.StatusBadRequest, "round not started")
+			return
+		}
+		tile := c.PostForm("tile")
+		if tile == "" {
+			c.String(http.StatusBadRequest, "tile is required")
+			return
+		}
+		room.Round.Wall = append([]mahjong.Tile{mahjong.Tile(tile)}, room.Round.Wall...)
 	}
 }
 
@@ -192,5 +241,9 @@ func configure(r *gin.Engine, roomRepository RoomRepository) {
 		room.DELETE("/players", leaveRoomHandler(roomRepository))
 		room.GET("/live", subscribeRoomHandler(roomRepository))
 		room.POST("/actions", roomActionsHandler(roomRepository))
+		if gin.IsDebugging() {
+			room.PUT("/round/hands/:seat/concealed", setConcealedHandler())
+			room.POST("/round/wall", prependWallHandler())
+		}
 	}
 }

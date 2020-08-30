@@ -25,7 +25,7 @@ func TestDrawEvent_View(t *testing.T) {
 	assert.Equal(t, EventView{
 		Type: EventDraw,
 		Seat: 1,
-		Time: now,
+		Time: timeInMillis(now),
 	}, draw.View())
 }
 
@@ -39,7 +39,7 @@ func TestDiscardEvent_View(t *testing.T) {
 	assert.Equal(t, EventView{
 		Type:  EventDiscard,
 		Seat:  1,
-		Time:  now,
+		Time:  timeInMillis(now),
 		Tiles: []Tile{TileWindsWest},
 	}, draw.View())
 }
@@ -89,7 +89,7 @@ func TestChiEvent_View(t *testing.T) {
 	assert.Equal(t, EventView{
 		Type:  EventChi,
 		Seat:  1,
-		Time:  now,
+		Time:  timeInMillis(now),
 		Tiles: []Tile{TileDots3, TileDots4, TileDots5},
 	}, chi.View())
 }
@@ -104,7 +104,7 @@ func TestPongEvent_View(t *testing.T) {
 	assert.Equal(t, EventView{
 		Type:  EventPong,
 		Seat:  1,
-		Time:  now,
+		Time:  timeInMillis(now),
 		Tiles: []Tile{TileDragonsRed},
 	}, pong.View())
 }
@@ -120,7 +120,7 @@ func TestGangEvent_View(t *testing.T) {
 	assert.Equal(t, EventView{
 		Type:  EventGang,
 		Seat:  1,
-		Time:  now,
+		Time:  timeInMillis(now),
 		Tiles: []Tile{TileDragonsGreen, TileRooster, TileCentipede},
 	}, gang.View())
 }

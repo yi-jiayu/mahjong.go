@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+func timeInMillis(t time.Time) int64 {
+	return t.UnixNano() / 1e6
+}
+
 // Event represents things that happened during a mahjong game, such as
 // drawing a tile, discarding a tile or creating a melded set. Events can be
 // undone to return to a previous round state and vice-versa.
@@ -38,7 +42,7 @@ func (d DrawEvent) View() EventView {
 	return EventView{
 		Type: EventDraw,
 		Seat: d.Seat,
-		Time: d.Time,
+		Time: timeInMillis(d.Time),
 	}
 }
 
@@ -60,7 +64,7 @@ func (d DiscardEvent) View() EventView {
 	return EventView{
 		Type:  EventDiscard,
 		Seat:  d.Seat,
-		Time:  d.Time,
+		Time:  timeInMillis(d.Time),
 		Tiles: []Tile{d.Tile},
 	}
 }
@@ -111,7 +115,7 @@ func (c ChiEvent) View() EventView {
 	return EventView{
 		Type:  EventChi,
 		Seat:  c.Seat,
-		Time:  c.Time,
+		Time:  timeInMillis(c.Time),
 		Tiles: seq,
 	}
 }
@@ -135,7 +139,7 @@ func (p PongEvent) View() EventView {
 	return EventView{
 		Type:  EventPong,
 		Seat:  p.Seat,
-		Time:  p.Time,
+		Time:  timeInMillis(p.Time),
 		Tiles: []Tile{p.Tile},
 	}
 }
@@ -161,7 +165,7 @@ func (g GangEvent) View() EventView {
 	return EventView{
 		Type:  EventGang,
 		Seat:  g.Seat,
-		Time:  g.Time,
+		Time:  timeInMillis(g.Time),
 		Tiles: append([]Tile{g.Tile}, g.Flowers...),
 	}
 }
