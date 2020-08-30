@@ -491,6 +491,7 @@ func TestRound_Hu(t *testing.T) {
 				"46白板", "46白板",
 			},
 		}, r.Result)
+		assert.Equal(t, now, r.LastActionTime)
 		assert.Equal(
 			t,
 			[]Event{HuEvent{
@@ -753,6 +754,7 @@ func TestRound_End(t *testing.T) {
 			Wind:   r.Wind,
 			Winner: -1,
 		}, r.Result)
+		assert.Equal(t, now, r.LastActionTime)
 		assert.Equal(t, []Event{EndEvent{Seat: 0, Time: now}}, r.Events)
 	})
 }
