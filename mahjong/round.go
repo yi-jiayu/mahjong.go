@@ -431,6 +431,7 @@ func (r *Round) Start(seed int64, t time.Time) {
 	r.Phase = PhaseDiscard
 	r.Discards = []Tile{}
 	r.LastActionTime = t
+	r.Events = []Event{StartEvent{Time: t}}
 }
 
 // Next returns a new round, setting the dealer and the prevailing wind

@@ -568,12 +568,18 @@ func TestRound_View(t *testing.T) {
 				Dealer:    r.Dealer,
 				Turn:      r.Turn,
 				Phase:     r.Phase,
-				Events: []EventView{{
-					Type:  EventDiscard,
-					Time:  ms,
-					Seat:  1,
-					Tiles: []Tile{TileBamboo1},
-				}},
+				Events: []EventView{
+					{
+						Type: EventStart,
+						Time: ms,
+					},
+					{
+						Type:  EventDiscard,
+						Time:  ms,
+						Seat:  1,
+						Tiles: []Tile{TileBamboo1},
+					},
+				},
 
 				Result:           r.Result,
 				LastActionTime:   ms,
@@ -601,12 +607,18 @@ func TestRound_View(t *testing.T) {
 				Dealer:    r.Dealer,
 				Turn:      r.Turn,
 				Phase:     r.Phase,
-				Events: []EventView{{
-					Type:  EventDiscard,
-					Time:  ms,
-					Seat:  1,
-					Tiles: []Tile{TileBamboo1},
-				}},
+				Events: []EventView{
+					{
+						Type: EventStart,
+						Time: ms,
+					},
+					{
+						Type:  EventDiscard,
+						Time:  ms,
+						Seat:  1,
+						Tiles: []Tile{TileBamboo1},
+					},
+				},
 				Result:           r.Result,
 				LastActionTime:   ms,
 				ReservedDuration: r.ReservedDuration.Milliseconds(),
@@ -690,9 +702,11 @@ func TestRound_distributeTiles(t *testing.T) {
 
 func TestRound_Start(t *testing.T) {
 	r := new(Round)
-	r.Start(0, time.Now())
+	now := time.Now()
+	r.Start(0, now)
 	assert.Equal(t, r.Dealer, r.Turn)
 	assert.Equal(t, r.Phase, PhaseDiscard)
+	assert.Equal(t, []Event{StartEvent{Time: now}}, r.Events)
 }
 
 func TestRound_End(t *testing.T) {
