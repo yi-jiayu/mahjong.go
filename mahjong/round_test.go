@@ -450,6 +450,28 @@ func TestRound_Hu(t *testing.T) {
 		err := r.Hu(0, time.Now())
 		assert.EqualError(t, err, "missing tiles")
 	})
+	t.Run("cannot hu when no tai", func(t *testing.T) {
+		seat := 1
+		r := &Round{
+			Turn:  seat,
+			Phase: PhaseDiscard,
+			Hands: [4]Hand{{},
+				{
+					Flowers:  []Tile{},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileDragonsWhite, TileDragonsWhite,
+					}),
+				},
+			},
+		}
+		now := time.Now()
+		err := r.Hu(seat, now)
+		assert.EqualError(t, err, "no tai")
+	})
 	t.Run("successful zi mo hu", func(t *testing.T) {
 		seat := 1
 		r := &Round{
@@ -500,6 +522,7 @@ func TestRound_Hu(t *testing.T) {
 			}},
 			r.Events,
 		)
+		assert.Equal(t, winnings(r.Rules, seat, -1, 1), r.Scores)
 	})
 	t.Run("successful hu from discards", func(t *testing.T) {
 		seat := 2

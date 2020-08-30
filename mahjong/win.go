@@ -38,10 +38,14 @@ func push(stack []searchState, state searchState) []searchState {
 	return append(stack, state)
 }
 
-func search(tiles TileBag) [][]Meld {
+func search(tiles TileBag, additionalTiles ...Tile) [][]Meld {
 	var results [][]Meld
 	seen := make(map[string]struct{})
-	stack := []searchState{{tiles: tiles}}
+	initial := searchState{tiles: tiles}.copy()
+	for _, tile := range additionalTiles {
+		initial.tiles.Add(tile)
+	}
+	stack := []searchState{initial}
 	for len(stack) > 0 {
 		var state searchState
 		state, stack = pop(stack)
@@ -128,9 +132,9 @@ func isMatchingWind(wind Tile, seat Direction) bool {
 	switch {
 	case wind == TileWindsEast && seat == DirectionEast:
 		return true
-	case wind == TileWindsSouth && seat == DirectionWest:
+	case wind == TileWindsSouth && seat == DirectionSouth:
 		return true
-	case wind == TileWindsWest && seat == DirectionSouth:
+	case wind == TileWindsWest && seat == DirectionWest:
 		return true
 	case wind == TileWindsNorth && seat == DirectionNorth:
 		return true
@@ -155,10 +159,6 @@ func isHalfFlush(suits map[Suit]int) bool {
 
 func score(round *Round, seat int, melds Melds) int {
 	score := 0
-	// zi mo
-	if round.Turn == seat {
-		score++
-	}
 	meldTypes := make(map[MeldType]int)
 	suits := make(map[Suit]int)
 	for _, meld := range melds {
@@ -203,4 +203,60 @@ func score(round *Round, seat int, melds Melds) int {
 		}
 	}
 	return score
+}
+
+var (
+	RulesDefault = Rules{
+		Shooter: false,
+		Limit:   5,
+	}
+	RulesShooter = Rules{
+		Shooter: true,
+		Limit:   5,
+	}
+)
+
+type Rules struct {
+	Shooter bool
+	Limit   int
+}
+
+// winnings returns how much each player's score changes.
+func winnings(rules Rules, winner, loser, points int) [4]int {
+	limit := rules.Limit
+	if limit == 0 {
+		limit = 5
+	}
+	if points > limit {
+		points = limit
+	}
+	delta := 1 << (points - 1)
+	var deltas [4]int
+	for i := range deltas {
+		if i != winner {
+			if loser == -1 {
+				// zi mo everyone pays double
+				deltas[i] -= 2 * delta
+				deltas[winner] += 2 * delta
+			} else {
+				if rules.Shooter {
+					// only loser pays
+					if i == loser {
+						deltas[i] -= 4 * delta
+						deltas[winner] += 4 * delta
+					}
+				} else {
+					// only loser pays double
+					if i == loser {
+						deltas[i] -= 2 * delta
+						deltas[winner] += 2 * delta
+					} else {
+						deltas[i] -= delta
+						deltas[winner] += delta
+					}
+				}
+			}
+		}
+	}
+	return deltas
 }

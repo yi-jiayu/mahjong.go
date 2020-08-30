@@ -39,6 +39,9 @@ type Round struct {
 	// Result is the outcome of the round.
 	Result Result
 
+	// Rules are the scoring rules for this round.
+	Rules Rules
+
 	LastActionTime   time.Time
 	ReservedDuration time.Duration
 }
@@ -309,6 +312,10 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 	return
 }
 
+func bestHand(winningHands [][]Meld, round *Round, seat int) ([]Meld, int) {
+	return winningHands[0], score(round, seat, winningHands[0])
+}
+
 func (r *Round) Hu(seat int, t time.Time) error {
 	if seat == r.previousTurn() {
 		return errors.New("wrong turn")
@@ -319,25 +326,25 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	if r.Turn == seat && r.Phase == PhaseDraw {
 		return errors.New("wrong phase")
 	}
-	// temporarily add the last discard to the player's hand
-	// if trying to hu from a discard
+	var additionalTiles []Tile
 	if r.Phase == PhaseDraw {
-		r.Hands[seat].Concealed.Add(r.lastDiscard())
+		additionalTiles = []Tile{r.lastDiscard()}
 	}
-	winningHands := search(r.Hands[seat].Concealed)
+	winningHands := search(r.Hands[seat].Concealed, additionalTiles...)
 	if len(winningHands) == 0 {
-		if r.Phase == PhaseDraw {
-			r.Hands[seat].Concealed.Remove(r.lastDiscard())
-		}
 		return errors.New("missing tiles")
 	}
-	// actually remove the last discard if the player has a winning hand
+	best, points := bestHand(winningHands, r, seat)
+	if points == 0 {
+		return errors.New("no tai")
+	}
+	// remove the last discard if the player has a winning hand
 	if r.Phase == PhaseDraw {
 		r.popLastDiscard()
 	}
 	// for now, take the first winning hand
 	// ideally we will take the highest scoring hand
-	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, winningHands[0]...)
+	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, best...)
 	r.Hands[seat].Concealed = TileBag{}
 	sort.Sort(Melds(r.Hands[seat].Revealed))
 	r.Result = Result{
@@ -351,6 +358,15 @@ func (r *Round) Hu(seat int, t time.Time) error {
 		Seat: seat,
 		Time: t,
 	})
+	var loser int
+	if r.Phase == PhaseDiscard {
+		loser = -1
+	} else {
+		loser = r.previousTurn()
+	}
+	for i, delta := range winnings(r.Rules, seat, loser, points) {
+		r.Scores[i] += delta
+	}
 	r.Phase = PhaseFinished
 	return nil
 }

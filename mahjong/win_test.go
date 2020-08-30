@@ -74,7 +74,7 @@ func Test_score(t *testing.T) {
 			{Type: MeldChi, Tiles: []Tile{TileBamboo4, TileBamboo5, TileBamboo6}},
 			{Type: MeldEyes, Tiles: []Tile{TileCharacters9, TileCharacters9}},
 		}
-		assert.Equal(t, 5, score(round, 0, melds))
+		assert.Equal(t, 4, score(round, 0, melds))
 	})
 	t.Run("ping hu from discard", func(t *testing.T) {
 		round := &Round{
@@ -221,5 +221,44 @@ func Test_score(t *testing.T) {
 			{Type: MeldEyes, Tiles: []Tile{TileWindsWest, TileWindsWest}},
 		}
 		assert.Equal(t, 2, score(round, 0, melds))
+	})
+}
+
+func Test_winnings(t *testing.T) {
+	t.Run("default rules", func(t *testing.T) {
+		rules := RulesDefault
+		actual := winnings(rules, 0, 2, 3)
+		expected := [4]int{16, -4, -8, -4}
+		assert.Equal(t, expected, actual)
+	})
+	t.Run("default rules, zi mo", func(t *testing.T) {
+		rules := RulesDefault
+		actual := winnings(rules, 0, -1, 3)
+		expected := [4]int{24, -8, -8, -8}
+		assert.Equal(t, expected, actual)
+	})
+	t.Run("shooter pays", func(t *testing.T) {
+		rules := RulesShooter
+		actual := winnings(rules, 0, 2, 3)
+		expected := [4]int{16, 0, -16, 0}
+		assert.Equal(t, expected, actual)
+	})
+	t.Run("shooter pays, zi mo", func(t *testing.T) {
+		rules := RulesShooter
+		actual := winnings(rules, 0, -1, 3)
+		expected := [4]int{24, -8, -8, -8}
+		assert.Equal(t, expected, actual)
+	})
+	t.Run("default rules, limit", func(t *testing.T) {
+		rules := RulesDefault
+		actual := winnings(rules, 0, 2, 8)
+		expected := [4]int{64, -16, -32, -16}
+		assert.Equal(t, expected, actual)
+	})
+	t.Run("shooter pays, limit", func(t *testing.T) {
+		rules := RulesShooter
+		actual := winnings(rules, 0, 2, 8)
+		expected := [4]int{64, 0, -64, 0}
+		assert.Equal(t, expected, actual)
 	})
 }
