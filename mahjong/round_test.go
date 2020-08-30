@@ -468,7 +468,8 @@ func TestRound_Hu(t *testing.T) {
 				},
 			},
 		}
-		err := r.Hu(seat, time.Now())
+		now := time.Now()
+		err := r.Hu(seat, now)
 		assert.NoError(t, err)
 		assert.Equal(t, PhaseFinished, r.Phase)
 		assert.Equal(t, []Meld{
@@ -490,6 +491,14 @@ func TestRound_Hu(t *testing.T) {
 				"46白板", "46白板",
 			},
 		}, r.Result)
+		assert.Equal(
+			t,
+			[]Event{HuEvent{
+				Seat: seat,
+				Time: now,
+			}},
+			r.Events,
+		)
 	})
 	t.Run("successful hu from discards", func(t *testing.T) {
 		seat := 2
@@ -721,7 +730,8 @@ func TestRound_End(t *testing.T) {
 			Turn:  0,
 			Phase: PhaseDiscard,
 		}
-		err := r.End(0, time.Now())
+		now := time.Now()
+		err := r.End(0, now)
 		assert.NoError(t, err)
 		assert.Equal(t, PhaseFinished, r.Phase)
 		assert.Equal(t, Result{
@@ -729,6 +739,7 @@ func TestRound_End(t *testing.T) {
 			Wind:   r.Wind,
 			Winner: -1,
 		}, r.Result)
+		assert.Equal(t, []Event{EndEvent{Seat: 0, Time: now}}, r.Events)
 	})
 }
 

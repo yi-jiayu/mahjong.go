@@ -10,6 +10,8 @@ const (
 	EventChi     = "chi"
 	EventPong    = "pong"
 	EventGang    = "gang"
+	EventHu      = "hu"
+	EventEnd     = "end"
 )
 
 // EventView represents a player's view of an event.

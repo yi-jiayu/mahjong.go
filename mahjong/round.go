@@ -346,6 +346,10 @@ func (r *Round) Hu(seat int, t time.Time) error {
 		Winner:       seat,
 		WinningTiles: append(r.Hands[seat].Flowers, Melds(r.Hands[seat].Revealed).Tiles()...),
 	}
+	r.Events = append(r.Events, HuEvent{
+		Seat: seat,
+		Time: t,
+	})
 	r.Phase = PhaseFinished
 	return nil
 }
@@ -470,6 +474,10 @@ func (r *Round) End(seat int, t time.Time) error {
 		Wind:   r.Wind,
 		Winner: -1,
 	}
+	r.Events = append(r.Events, EndEvent{
+		Seat: seat,
+		Time: t,
+	})
 	return nil
 }
 

@@ -169,3 +169,45 @@ func (g GangEvent) View() EventView {
 		Tiles: append([]Tile{g.Tile}, g.Flowers...),
 	}
 }
+
+type HuEvent struct {
+	Seat int
+	Time time.Time
+}
+
+func (h HuEvent) Undo(r *Round) *Round {
+	panic("implement me")
+}
+
+func (h HuEvent) Redo(r *Round) *Round {
+	panic("implement me")
+}
+
+func (h HuEvent) View() EventView {
+	return EventView{
+		Type: EventHu,
+		Seat: h.Seat,
+		Time: timeInMillis(h.Time),
+	}
+}
+
+type EndEvent struct {
+	Seat int
+	Time time.Time
+}
+
+func (e EndEvent) Undo(r *Round) *Round {
+	panic("implement me")
+}
+
+func (e EndEvent) Redo(r *Round) *Round {
+	panic("implement me")
+}
+
+func (e EndEvent) View() EventView {
+	return EventView{
+		Type: EventEnd,
+		Seat: e.Seat,
+		Time: timeInMillis(e.Time),
+	}
+}
