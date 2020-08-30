@@ -803,6 +803,15 @@ func TestRound_Next(t *testing.T) {
 		assert.Equal(t, 0, next.Dealer)
 		assert.Equal(t, DirectionSouth, next.Wind)
 	})
+	t.Run("copies over scores", func(t *testing.T) {
+		r := &Round{
+			Scores: [4]int{4, 2, 1, -2},
+			Phase:  PhaseFinished,
+		}
+		next, err := r.Next()
+		assert.NoError(t, err)
+		assert.Equal(t, r.Scores, next.Scores)
+	})
 	t.Run("no more rounds", func(t *testing.T) {
 		r := &Round{
 			Phase:  PhaseFinished,

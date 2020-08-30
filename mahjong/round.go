@@ -453,6 +453,7 @@ func (r *Round) Next() (*Round, error) {
 		}
 	}
 	return &Round{
+		Scores: r.Scores,
 		Dealer: dealer,
 		Wind:   wind,
 	}, nil
