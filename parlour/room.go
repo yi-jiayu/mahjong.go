@@ -213,7 +213,10 @@ func (r *Room) removePlayer(playerID string) {
 func (r *Room) nextRound() error {
 	if r.Round == nil {
 		r.Phase = PhaseInProgress
-		r.Round = new(mahjong.Round)
+		r.Round = &mahjong.Round{
+			Rules:            mahjong.RulesDefault,
+			ReservedDuration: 2 * time.Second,
+		}
 	} else {
 		next, err := r.Round.Next()
 		if err != nil {
