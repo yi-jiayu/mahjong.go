@@ -217,6 +217,39 @@ func prependWallHandler() gin.HandlerFunc {
 	}
 }
 
+var botNames = [4]string{"Barty Bot", "Francisco Bot", "Lupe Bot", "Mordecai Bot"}
+
+func addBotHandler(_ RoomRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		playerID := c.GetString(KeyPlayerID)
+		room := c.MustGet(KeyRoom).(*Room)
+		room.WithLock(func(r *Room) {
+			if r.seat(playerID) == -1 {
+				c.String(http.StatusForbidden, "not in room")
+				return
+			}
+			if len(r.Players) == 4 {
+				c.String(http.StatusBadRequest, "room full")
+				return
+			}
+			botID := newPlayerID(16)
+			r.Players = append(r.Players, Player{
+				id:   botID,
+				Name: botNames[len(r.Players)],
+			})
+			r.broadcast()
+			ch := make(chan string, 1)
+			r.clients[ch] = botID
+			bot := Bot{
+				ID:      botID,
+				Room:    room,
+				Updates: ch,
+			}
+			go bot.Start()
+		})
+	}
+}
+
 func setRoomMiddleware(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roomID := c.Param("roomID")
@@ -245,6 +278,7 @@ func configure(r *gin.Engine, roomRepository RoomRepository) {
 		room.DELETE("/players", leaveRoomHandler(roomRepository))
 		room.GET("/live", subscribeRoomHandler(roomRepository))
 		room.POST("/actions", roomActionsHandler(roomRepository))
+		room.POST("/bots", addBotHandler(roomRepository))
 		if gin.IsDebugging() {
 			room.PUT("/round/hands/:seat/concealed", setConcealedHandler())
 			room.POST("/round/wall", prependWallHandler())
