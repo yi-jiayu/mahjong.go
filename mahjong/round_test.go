@@ -102,9 +102,24 @@ func TestRound_Discard(t *testing.T) {
 		err := r.Discard(0, time.Now(), TileDragonsRed)
 		assert.EqualError(t, err, "missing tiles")
 	})
+	t.Run("cannot discard when no draws left", func(t *testing.T) {
+		r := &Round{
+			Turn:  0,
+			Phase: PhaseDiscard,
+			Hands: [4]Hand{{Concealed: TileBag{TileDragonsRed: 1}}},
+		}
+		err := r.Discard(0, time.Now(), TileDragonsRed)
+		assert.EqualError(t, err, "no draws left")
+	})
 	t.Run("successful discard", func(t *testing.T) {
 		seat := 0
 		r := &Round{
+			Wall: []Tile{
+				"38八万", "35五万", "27六索", "44红中",
+				"22一索", "34四万", "35五万", "20八筒",
+				"37七万", "13一筒", "43北风", "26五索",
+				"21九筒", "25四索", "42西风", "17五筒",
+			},
 			Turn:     seat,
 			Phase:    PhaseDiscard,
 			Discards: []Tile{TileWindsEast},
@@ -586,7 +601,7 @@ func TestRound_View(t *testing.T) {
 					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 				},
-				DrawsLeft: len(r.Wall) - 16,
+				DrawsLeft: len(r.Wall) - 15,
 				Discards:  r.Discards,
 				Wind:      r.Wind,
 				Dealer:    r.Dealer,
@@ -625,7 +640,7 @@ func TestRound_View(t *testing.T) {
 					{Flowers: []Tile{}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 					{Flowers: []Tile{"06兰", "12冬"}, Revealed: []Meld{}, Concealed: TileBag{"": 13}},
 				},
-				DrawsLeft: len(r.Wall) - 16,
+				DrawsLeft: len(r.Wall) - 15,
 				Discards:  r.Discards,
 				Wind:      r.Wind,
 				Dealer:    r.Dealer,

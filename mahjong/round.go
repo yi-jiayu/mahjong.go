@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	MinTilesLeft = 16
+)
+
 // Round represents a round in a mahjong game.
 type Round struct {
 	// Scores contains the score for each player in the game.
@@ -137,6 +141,9 @@ func (r *Round) Discard(seat int, t time.Time, tile Tile) error {
 	}
 	if !r.Hands[seat].Concealed.Contains(tile) {
 		return errors.New("missing tiles")
+	}
+	if len(r.Wall) <= MinTilesLeft-1 {
+		return errors.New("no draws left")
 	}
 	r.Hands[seat].Concealed.Remove(tile)
 	r.Discards = append(r.Discards, tile)
@@ -486,7 +493,7 @@ func (r *Round) End(seat int, t time.Time) error {
 	if r.Phase != PhaseDiscard {
 		return errors.New("wrong phase")
 	}
-	if len(r.Wall) >= 16 {
+	if len(r.Wall) >= MinTilesLeft {
 		return errors.New("some draws remaining")
 	}
 	r.Phase = PhaseFinished
@@ -522,7 +529,7 @@ func (r *Round) View(seat int) RoundView {
 		Seat:             seat,
 		Scores:           r.Scores,
 		Hands:            hands,
-		DrawsLeft:        len(r.Wall) - 16,
+		DrawsLeft:        len(r.Wall) - MinTilesLeft + 1,
 		Discards:         r.Discards,
 		Wind:             r.Wind,
 		Dealer:           r.Dealer,
