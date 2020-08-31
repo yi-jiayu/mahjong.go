@@ -29,7 +29,7 @@ func newPlayerID(n int) string {
 	return base64.RawURLEncoding.EncodeToString(data)
 }
 
-func setPlayerID(c *gin.Context) {
+func setPlayerIDMiddleware(c *gin.Context) {
 	playerID, _ := c.Cookie("playerID")
 	if playerID == "" {
 		playerID = newPlayerID(16)
@@ -123,7 +123,7 @@ func leaveRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	}
 }
 
-func subscribeRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
+func subscribeRoomHandler(_ RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
@@ -217,11 +217,8 @@ func prependWallHandler() gin.HandlerFunc {
 	}
 }
 
-func configure(r *gin.Engine, roomRepository RoomRepository) {
-	r.Use(setPlayerID)
-	r.POST("/rooms", createRoomHandler(roomRepository))
-	room := r.Group("/rooms/:roomID")
-	room.Use(func(c *gin.Context) {
+func setRoomMiddleware(roomRepository RoomRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		roomID := c.Param("roomID")
 		room, err := roomRepository.Get(roomID)
 		if errors.Is(err, errNotFound) {
@@ -235,7 +232,14 @@ func configure(r *gin.Engine, roomRepository RoomRepository) {
 		}
 		c.Set("room", room)
 		c.Next()
-	})
+	}
+}
+
+func configure(r *gin.Engine, roomRepository RoomRepository) {
+	r.Use(setPlayerIDMiddleware)
+	r.POST("/rooms", createRoomHandler(roomRepository))
+	room := r.Group("/rooms/:roomID")
+	room.Use(setRoomMiddleware(roomRepository))
 	{
 		room.POST("/players", joinRoomHandler(roomRepository))
 		room.DELETE("/players", leaveRoomHandler(roomRepository))
