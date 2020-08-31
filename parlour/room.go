@@ -19,7 +19,8 @@ const (
 )
 
 var (
-	errForbidden = errors.New("forbidden")
+	errForbidden    = errors.New("forbidden")
+	errInvalidNonce = errors.New("invalid nonce")
 )
 
 type Player struct {
@@ -162,7 +163,7 @@ func (r *Room) reduce(playerID string, action Action) error {
 		return errForbidden
 	}
 	if action.Nonce != r.Nonce {
-		return errors.New("invalid nonce")
+		return errInvalidNonce
 	}
 	t := time.Now()
 	err := r.reduceRound(seat, t, action)
