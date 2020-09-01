@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/yi-jiayu/mahjong.go/mahjong"
+	"github.com/yi-jiayu/mahjong.go"
 )
 
 type Bot struct {

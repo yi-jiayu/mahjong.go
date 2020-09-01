@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yi-jiayu/mahjong.go/mahjong"
+	"github.com/yi-jiayu/mahjong.go"
 )
 
 type Phase int
