@@ -48,11 +48,10 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileBamboo1}), r.Hands[seat].Concealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{DrawEvent{
-			Seat:    seat,
-			Time:    now,
-			Tile:    drawn,
-			Flowers: flowers,
+		assert.Equal(t, []Event{{
+			Type: EventDraw,
+			Seat: seat,
+			Time: timeInMillis(now),
 		}}, r.Events)
 		assert.Equal(t, now, r.LastActionTime)
 	})
@@ -73,11 +72,10 @@ func TestRound_Draw(t *testing.T) {
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileDots5}), r.Hands[seat].Concealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{DrawEvent{
-			Seat:    seat,
-			Time:    now,
-			Tile:    drawn,
-			Flowers: flowers,
+		assert.Equal(t, []Event{{
+			Type: EventDraw,
+			Seat: seat,
+			Time: timeInMillis(now),
 		}}, r.Events)
 	})
 }
@@ -132,10 +130,11 @@ func TestRound_Discard(t *testing.T) {
 		assert.Equal(t, []Tile{TileWindsEast, TileWindsNorth}, r.Discards)
 		assert.Equal(t, 1, r.Turn)
 		assert.Equal(t, PhaseDraw, r.Phase)
-		assert.Equal(t, []Event{DiscardEvent{
-			Seat: seat,
-			Time: now,
-			Tile: TileWindsNorth,
+		assert.Equal(t, []Event{{
+			Type:  EventDiscard,
+			Seat:  seat,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileWindsNorth},
 		}}, r.Events)
 		assert.Equal(t, now, r.LastActionTime)
 	})
@@ -220,11 +219,11 @@ func TestRound_Chi(t *testing.T) {
 		}}, r.Hands[0].Revealed)
 		assert.Equal(t, 0, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{ChiEvent{
-			Seat:        0,
-			Time:        now,
-			LastDiscard: TileBamboo3,
-			Tiles:       [2]Tile{TileBamboo1, TileBamboo2},
+		assert.Equal(t, []Event{{
+			Type:  EventChi,
+			Seat:  0,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileBamboo1, TileBamboo2, TileBamboo3},
 		}}, r.Events)
 		assert.Equal(t, now, r.LastActionTime)
 	})
@@ -278,11 +277,11 @@ func TestRound_Pong(t *testing.T) {
 		}}, r.Hands[seat].Revealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{PongEvent{
-			Seat:         seat,
-			Time:         now,
-			Tile:         TileDragonsRed,
-			PreviousTurn: 3,
+		assert.Equal(t, []Event{{
+			Type:  EventPong,
+			Seat:  seat,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileDragonsRed},
 		}}, r.Events)
 		assert.Equal(t, now, r.LastActionTime)
 	})
@@ -343,10 +342,11 @@ func TestRound_GangFromDiscard(t *testing.T) {
 		}}, r.Hands[seat].Revealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{GangEvent{
-			Seat: seat,
-			Time: now,
-			Tile: TileDragonsRed,
+		assert.Equal(t, []Event{{
+			Type:  EventGang,
+			Seat:  seat,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileDragonsRed},
 		}}, r.Events)
 		assert.Equal(t, now, r.LastActionTime)
 	})
@@ -396,10 +396,11 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.Equal(t, []Tile{TileCharacters1}, r.Wall)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{GangEvent{
-			Seat: seat,
-			Time: now,
-			Tile: TileDragonsRed,
+		assert.Equal(t, []Event{{
+			Type:  EventGang,
+			Seat:  seat,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileDragonsRed},
 		}}, r.Events)
 		assert.Equal(t, now, r.LastActionTime)
 	})
@@ -431,10 +432,11 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.Equal(t, []Tile{TileCharacters1}, r.Wall)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{GangEvent{
-			Seat: seat,
-			Time: now,
-			Tile: TileDragonsRed,
+		assert.Equal(t, []Event{{
+			Type:  EventGang,
+			Seat:  seat,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileDragonsRed},
 		}}, r.Events)
 		assert.Equal(t, now, r.LastActionTime)
 	})
@@ -531,9 +533,10 @@ func TestRound_Hu(t *testing.T) {
 		assert.Equal(t, now, r.LastActionTime)
 		assert.Equal(
 			t,
-			[]Event{HuEvent{
+			[]Event{{
+				Type: EventHu,
 				Seat: seat,
-				Time: now,
+				Time: timeInMillis(now),
 			}},
 			r.Events,
 		)
@@ -607,7 +610,7 @@ func TestRound_View(t *testing.T) {
 				Dealer:    r.Dealer,
 				Turn:      r.Turn,
 				Phase:     r.Phase,
-				Events: []EventView{
+				Events: []Event{
 					{
 						Type: EventStart,
 						Time: ms,
@@ -646,7 +649,7 @@ func TestRound_View(t *testing.T) {
 				Dealer:    r.Dealer,
 				Turn:      r.Turn,
 				Phase:     r.Phase,
-				Events: []EventView{
+				Events: []Event{
 					{
 						Type: EventStart,
 						Time: ms,
@@ -745,7 +748,7 @@ func TestRound_Start(t *testing.T) {
 	r.Start(0, now)
 	assert.Equal(t, r.Dealer, r.Turn)
 	assert.Equal(t, r.Phase, PhaseDiscard)
-	assert.Equal(t, []Event{StartEvent{Time: now}}, r.Events)
+	assert.Equal(t, []Event{{Type: EventStart, Time: timeInMillis(now)}}, r.Events)
 }
 
 func TestRound_End(t *testing.T) {
@@ -793,7 +796,7 @@ func TestRound_End(t *testing.T) {
 			Winner: -1,
 		}, r.Result)
 		assert.Equal(t, now, r.LastActionTime)
-		assert.Equal(t, []Event{EndEvent{Seat: 0, Time: now}}, r.Events)
+		assert.Equal(t, []Event{{Type: EventEnd, Seat: 0, Time: timeInMillis(now)}}, r.Events)
 	})
 }
 

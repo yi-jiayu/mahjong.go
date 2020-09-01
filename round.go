@@ -122,11 +122,10 @@ func (r *Round) Draw(seat int, t time.Time) (drawn Tile, flowers []Tile, err err
 	hand.Concealed.Add(drawn)
 	hand.Flowers = append(hand.Flowers, flowers...)
 	r.Phase = PhaseDiscard
-	r.Events = append(r.Events, DrawEvent{
-		Seat:    seat,
-		Time:    t,
-		Tile:    drawn,
-		Flowers: flowers,
+	r.Events = append(r.Events, Event{
+		Type: EventDraw,
+		Seat: seat,
+		Time: timeInMillis(t),
 	})
 	r.LastActionTime = t
 	return
@@ -149,11 +148,7 @@ func (r *Round) Discard(seat int, t time.Time, tile Tile) error {
 	r.Discards = append(r.Discards, tile)
 	r.Turn = (r.Turn + 1) % 4
 	r.Phase = PhaseDraw
-	r.Events = append(r.Events, DiscardEvent{
-		Seat: seat,
-		Time: t,
-		Tile: tile,
-	})
+	r.Events = append(r.Events, newEvent(EventDiscard, seat, t, tile))
 	r.LastActionTime = t
 	return nil
 }
@@ -192,12 +187,7 @@ func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 		Tiles: seq,
 	})
 	r.Phase = PhaseDiscard
-	r.Events = append(r.Events, ChiEvent{
-		Seat:        seat,
-		Time:        t,
-		LastDiscard: tile0,
-		Tiles:       [2]Tile{tile1, tile2},
-	})
+	r.Events = append(r.Events, newEvent(EventChi, seat, t, seq...))
 	r.LastActionTime = t
 	return nil
 }
@@ -222,12 +212,7 @@ func (r *Round) Pong(seat int, t time.Time) error {
 		Type:  MeldPong,
 		Tiles: []Tile{tile},
 	})
-	r.Events = append(r.Events, PongEvent{
-		Seat:         seat,
-		Time:         t,
-		Tile:         tile,
-		PreviousTurn: r.Turn,
-	})
+	r.Events = append(r.Events, newEvent(EventPong, seat, t, tile))
 	r.Turn = seat
 	r.Phase = PhaseDiscard
 	r.LastActionTime = t
@@ -261,11 +246,7 @@ func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flower
 	replacement, flowers = r.replaceTile()
 	hand.Flowers = append(hand.Flowers, flowers...)
 	hand.Concealed.Add(replacement)
-	r.Events = append(r.Events, GangEvent{
-		Seat: seat,
-		Time: t,
-		Tile: tile,
-	})
+	r.Events = append(r.Events, newEvent(EventGang, seat, t, tile))
 	r.Turn = seat
 	r.Phase = PhaseDiscard
 	r.LastActionTime = t
@@ -291,11 +272,7 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 		replacement, flowers = r.replaceTile()
 		hand.Flowers = append(hand.Flowers, flowers...)
 		hand.Concealed.Add(replacement)
-		r.Events = append(r.Events, GangEvent{
-			Seat: seat,
-			Time: t,
-			Tile: tile,
-		})
+		r.Events = append(r.Events, newEvent(EventGang, seat, t, tile))
 		r.LastActionTime = t
 		return
 	}
@@ -306,11 +283,7 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 			replacement, flowers = r.replaceTile()
 			hand.Flowers = append(hand.Flowers, flowers...)
 			hand.Concealed.Add(replacement)
-			r.Events = append(r.Events, GangEvent{
-				Seat: seat,
-				Time: t,
-				Tile: tile,
-			})
+			r.Events = append(r.Events, newEvent(EventGang, seat, t, tile))
 			r.LastActionTime = t
 			return
 		}
@@ -361,10 +334,7 @@ func (r *Round) Hu(seat int, t time.Time) error {
 		WinningTiles: append(r.Hands[seat].Flowers, Melds(r.Hands[seat].Revealed).Tiles()...),
 	}
 	r.LastActionTime = t
-	r.Events = append(r.Events, HuEvent{
-		Seat: seat,
-		Time: t,
-	})
+	r.Events = append(r.Events, newEvent(EventHu, seat, t))
 	var loser int
 	if r.Phase == PhaseDiscard {
 		loser = -1
@@ -455,7 +425,7 @@ func (r *Round) Start(seed int64, t time.Time) {
 	r.Phase = PhaseDiscard
 	r.Discards = []Tile{}
 	r.LastActionTime = t
-	r.Events = []Event{StartEvent{Time: t}}
+	r.Events = []Event{newEvent(EventStart, 0, t)}
 }
 
 // Next returns a new round, setting the dealer and the prevailing wind
@@ -503,20 +473,13 @@ func (r *Round) End(seat int, t time.Time) error {
 		Winner: -1,
 	}
 	r.LastActionTime = t
-	r.Events = append(r.Events, EndEvent{
-		Seat: seat,
-		Time: t,
-	})
+	r.Events = append(r.Events, newEvent(EventEnd, seat, t))
 	return nil
 }
 
 // View returns a view of a round from a certain seat. Values of seat outside
 // of [0, 3] will return a bystander's view of the round.
 func (r *Round) View(seat int) RoundView {
-	events := make([]EventView, len(r.Events))
-	for i, event := range r.Events {
-		events[i] = event.View()
-	}
 	var hands [4]Hand
 	for i, hand := range r.Hands {
 		if seat == i {
@@ -535,7 +498,7 @@ func (r *Round) View(seat int) RoundView {
 		Dealer:           r.Dealer,
 		Turn:             r.Turn,
 		Phase:            r.Phase,
-		Events:           events,
+		Events:           r.Events,
 		Result:           r.Result,
 		LastActionTime:   r.LastActionTime.UnixNano() / 1e6,
 		ReservedDuration: r.ReservedDuration.Milliseconds(),
