@@ -1,10 +1,16 @@
 package parlour
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"sync"
+
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v4"
 )
 
 var errNotFound = errors.New("not found")
@@ -58,4 +64,97 @@ func (r *InMemoryRoomRepository) Get(id string) (*Room, error) {
 		return nil, errNotFound
 	}
 	return room, nil
+}
+
+type Conn interface {
+	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Begin(ctx context.Context) (pgx.Tx, error)
+}
+
+type PostgresRoomRepository struct {
+	cache map[string]*Room
+	conn  Conn
+}
+
+func (p *PostgresRoomRepository) Save(room *Room) error {
+	ctx := context.Background()
+	if room.ID == "" {
+		for {
+			id := newRoomID()
+			tx, err := p.conn.Begin(ctx)
+			if err != nil {
+				return fmt.Errorf("error inserting room: %w", err)
+			}
+			_, err = tx.Exec(ctx, `insert into rooms (id, nonce, phase, players, round)
+values ($1, $2, $3, $4, $5)`,
+				id,
+				room.Nonce,
+				room.Phase,
+				room.Players,
+				room.Round,
+			)
+			if err != nil {
+				var pgError *pgconn.PgError
+				if errors.As(err, &pgError) {
+					if pgError.Code == pgerrcode.UniqueViolation {
+						_ = tx.Rollback(ctx)
+						continue
+					}
+				}
+				return fmt.Errorf("error inserting room: %w", err)
+			}
+			err = tx.Commit(ctx)
+			if err != nil {
+				return fmt.Errorf("error inserting room: %w", err)
+			}
+			room.ID = id
+			p.cache[id] = room
+			return nil
+		}
+	}
+	_, err := p.conn.Exec(ctx, `insert into rooms (id, nonce, phase, players, round)
+values ($1, $2, $3, $4, $5)
+on conflict (id) do update set nonce=excluded.nonce,
+                               phase=excluded.phase,
+                               players=excluded.players,
+                               round=excluded.round`,
+		room.ID,
+		room.Nonce,
+		room.Phase,
+		room.Players,
+		room.Round,
+	)
+	if err != nil {
+		return fmt.Errorf("error saving room: %w", err)
+	}
+	p.cache[room.ID] = room
+	return nil
+}
+
+func (p *PostgresRoomRepository) Get(id string) (*Room, error) {
+	if room, ok := p.cache[id]; ok {
+		return room, nil
+	}
+	var room Room
+	err := p.conn.QueryRow(
+		context.Background(),
+		"select id, nonce, phase, players, round from rooms where id = $1", id,
+	).Scan(&room.ID, &room.Nonce, &room.Phase, &room.Players, &room.Round)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error getting room: %w", err)
+	}
+	room.clients = make(map[chan string]string)
+	p.cache[room.ID] = &room
+	return &room, nil
+}
+
+func NewPostgresRoomRepository(conn Conn) *PostgresRoomRepository {
+	return &PostgresRoomRepository{
+		cache: make(map[string]*Room),
+		conn:  conn,
+	}
 }

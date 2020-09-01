@@ -79,7 +79,7 @@ func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 			return
 		}
 		player := Player{
-			id:   playerID,
+			ID:   playerID,
 			Name: name,
 		}
 		room := NewRoom(player)
@@ -104,7 +104,7 @@ func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 			return
 		}
 		player := Player{
-			id:   playerID,
+			ID:   playerID,
 			Name: name,
 		}
 		room.WithLock(func(r *Room) {
@@ -256,7 +256,7 @@ func addBotHandler(_ RoomRepository) gin.HandlerFunc {
 			}
 			botID := newPlayerID(16)
 			r.Players = append(r.Players, Player{
-				id:   botID,
+				ID:   botID,
 				Name: botNames[len(r.Players)],
 			})
 			r.broadcast()

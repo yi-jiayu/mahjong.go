@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -9,14 +10,19 @@ import (
 	"time"
 
 	"github.com/gin-contrib/sessions/cookie"
+	"github.com/jackc/pgx/v4"
 	"github.com/yi-jiayu/mahjong.go/parlour"
 )
 
-var host, port string
+var (
+	host, port string
+	database   string
+)
 
 func init() {
 	flag.StringVar(&host, "host", "localhost", "host to listen on")
 	flag.StringVar(&port, "port", "8080", "port to listen on")
+	flag.StringVar(&database, "database", "", "database url")
 
 	rand.Seed(time.Now().UnixNano())
 }
@@ -35,7 +41,12 @@ func getKey(name string) []byte {
 }
 
 func main() {
-	roomRepository := parlour.NewInMemoryRoomRepository()
+	conn, err := pgx.Connect(context.Background(), database)
+	if err != nil {
+		fmt.Printf("error connecting to postgres: %v", err)
+		os.Exit(1)
+	}
+	roomRepository := parlour.NewPostgresRoomRepository(conn)
 	authKey := getKey("PARLOUR_SESSION_AUTH_KEY")
 	encKey := getKey("PARLOUR_SESSION_ENC_KEY")
 	store := cookie.NewStore(authKey, encKey)
@@ -43,7 +54,7 @@ func main() {
 		RoomRepository: roomRepository,
 		SessionStore:   store,
 	}
-	err := p.Run(host + ":" + port)
+	err = p.Run(host + ":" + port)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}

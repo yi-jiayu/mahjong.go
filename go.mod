@@ -9,6 +9,9 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
+	github.com/jackc/pgconn v1.6.4
+	github.com/jackc/pgerrcode v0.0.0-20190803225404-afa3381909a6
+	github.com/jackc/pgx/v4 v4.8.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect

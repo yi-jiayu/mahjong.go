@@ -8,8 +8,8 @@ import (
 
 func TestRoom_AddPlayer(t *testing.T) {
 	t.Run("name already taken", func(t *testing.T) {
-		r := NewRoom(Player{id: "id1", Name: "player1"})
-		err := r.addPlayer(Player{id: "id2", Name: "player1"})
+		r := NewRoom(Player{ID: "id1", Name: "player1"})
+		err := r.addPlayer(Player{ID: "id2", Name: "player1"})
 		assert.EqualError(t, err, "name already taken")
 	})
 	t.Run("room full", func(t *testing.T) {

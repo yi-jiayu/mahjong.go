@@ -24,7 +24,7 @@ var (
 )
 
 type Player struct {
-	id   string
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -64,7 +64,7 @@ func (r *Room) WithRLock(f func(r *Room)) {
 
 func (r *Room) seat(playerID string) int {
 	for i, player := range r.Players {
-		if player.id == playerID {
+		if player.ID == playerID {
 			return i
 		}
 	}
@@ -89,7 +89,7 @@ func (r *Room) view(playerID string) RoomView {
 func (r *Room) addPlayer(player Player) error {
 	for _, p := range r.Players {
 		if p.Name == player.Name {
-			if p.id == player.id {
+			if p.ID == player.ID {
 				return nil
 			}
 			return errors.New("name already taken")
@@ -203,7 +203,7 @@ func (r *Room) broadcast() {
 
 func (r *Room) removePlayer(playerID string) {
 	for i, player := range r.Players {
-		if player.id == playerID {
+		if player.ID == playerID {
 			r.Players = append(r.Players[:i], r.Players[i+1:]...)
 			r.broadcast()
 			return
