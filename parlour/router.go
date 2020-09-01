@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yi-jiayu/mahjong.go/mahjong"
 )
 
@@ -70,6 +71,7 @@ func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 			c.Status(http.StatusInternalServerError)
 			return
 		}
+		metricOpenRooms.Add(1)
 		c.String(http.StatusCreated, room.ID)
 	}
 }
@@ -129,11 +131,13 @@ func subscribeRoomHandler(_ RoomRepository) gin.HandlerFunc {
 		room := c.MustGet(KeyRoom).(*Room)
 		ch := make(chan string, 1)
 		room.AddClient(playerID, ch)
+		metricRoomSubscriptions.Add(1)
 
 		notify := c.Request.Context().Done()
 		go func() {
 			<-notify
 			room.RemoveClient(ch)
+			metricRoomSubscriptions.Add(-1)
 		}()
 
 		c.Stream(func(w io.Writer) bool {
@@ -284,4 +288,5 @@ func configure(r *gin.Engine, roomRepository RoomRepository) {
 			room.POST("/round/wall", prependWallHandler())
 		}
 	}
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 }
