@@ -10,15 +10,23 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yi-jiayu/mahjong.go"
 )
 
 const (
-	KeyPlayerID = "playerID"
-	KeyRoom     = "room"
+	KeySessionName = "session"
+	KeyPlayerID    = "playerID"
+	KeyRoom        = "room"
 )
+
+var sessionOptions = sessions.Options{
+	Path:     "/",
+	SameSite: http.SameSiteStrictMode,
+	MaxAge:   2592000, // 30 days in seconds
+}
 
 // newPlayerID returns opaque string containing n bytes of entropy.
 func newPlayerID(n int) string {
@@ -31,13 +39,23 @@ func newPlayerID(n int) string {
 }
 
 func setPlayerIDMiddleware(c *gin.Context) {
-	playerID, _ := c.Cookie("playerID")
-	if playerID == "" {
+	session := sessions.Default(c)
+	session.Options(sessionOptions)
+	var playerID string
+	v := session.Get(KeyPlayerID)
+	if v == nil {
 		playerID = newPlayerID(16)
+	} else if p, ok := v.(string); !ok {
+		playerID = newPlayerID(16)
+	} else {
+		playerID = p
 	}
 	c.Set(KeyPlayerID, playerID)
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("playerID", playerID, 86400, "/", "", false, false)
+	session.Set(KeyPlayerID, playerID)
+	err := session.Save()
+	if err != nil {
+		fmt.Printf("error saving session: %v\n", err)
+	}
 	c.Next()
 }
 
@@ -272,17 +290,18 @@ func setRoomMiddleware(roomRepository RoomRepository) gin.HandlerFunc {
 	}
 }
 
-func configure(r *gin.Engine, roomRepository RoomRepository) {
+func (p Parlour) configure(r *gin.Engine) {
+	r.Use(sessions.Sessions(KeySessionName, p.SessionStore))
 	r.Use(setPlayerIDMiddleware)
-	r.POST("/rooms", createRoomHandler(roomRepository))
+	r.POST("/rooms", createRoomHandler(p.RoomRepository))
 	room := r.Group("/rooms/:roomID")
-	room.Use(setRoomMiddleware(roomRepository))
+	room.Use(setRoomMiddleware(p.RoomRepository))
 	{
-		room.POST("/players", joinRoomHandler(roomRepository))
-		room.DELETE("/players", leaveRoomHandler(roomRepository))
-		room.GET("/live", subscribeRoomHandler(roomRepository))
-		room.POST("/actions", roomActionsHandler(roomRepository))
-		room.POST("/bots", addBotHandler(roomRepository))
+		room.POST("/players", joinRoomHandler(p.RoomRepository))
+		room.DELETE("/players", leaveRoomHandler(p.RoomRepository))
+		room.GET("/live", subscribeRoomHandler(p.RoomRepository))
+		room.POST("/actions", roomActionsHandler(p.RoomRepository))
+		room.POST("/bots", addBotHandler(p.RoomRepository))
 		if gin.IsDebugging() {
 			room.PUT("/round/hands/:seat/concealed", setConcealedHandler())
 			room.POST("/round/wall", prependWallHandler())

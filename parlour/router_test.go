@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,11 @@ func Test_handleCreateRoom(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	configure(router, roomRepository)
+	parlour := &Parlour{
+		RoomRepository: roomRepository,
+		SessionStore:   memstore.NewStore(),
+	}
+	parlour.configure(router)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/rooms", strings.NewReader("name=alice"))
@@ -50,7 +55,11 @@ func Test_handleJoinRoom(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	configure(router, roomRepository)
+	parlour := &Parlour{
+		RoomRepository: roomRepository,
+		SessionStore:   memstore.NewStore(),
+	}
+	parlour.configure(router)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/rooms/%s/players", room.ID), strings.NewReader("name=bob"))
