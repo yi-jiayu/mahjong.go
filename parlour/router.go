@@ -38,7 +38,7 @@ func newPlayerID(n int) string {
 	return base64.RawURLEncoding.EncodeToString(data)
 }
 
-func setPlayerIDMiddleware(c *gin.Context) {
+func setPlayerID(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Options(sessionOptions)
 	var playerID string
@@ -59,6 +59,23 @@ func setPlayerIDMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+func handleErrors(c *gin.Context) {
+	c.Next()
+	err := c.Errors.Last()
+	if err == nil {
+		return
+	}
+	var e *Error
+	if errors.As(err, &e) {
+		if e.internal {
+			fmt.Printf("internal error: %v", e)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+	}
+	c.String(http.StatusBadRequest, err.Error())
+}
+
 func getName(c *gin.Context) (string, error) {
 	name := c.PostForm("name")
 	if name == "" {
@@ -70,23 +87,21 @@ func getName(c *gin.Context) (string, error) {
 	return name, nil
 }
 
-func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
+func (p *Parlour) createRoomHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		name, err := getName(c)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
+			_ = c.Error(err)
 			return
 		}
 		player := Player{
 			ID:   playerID,
 			Name: name,
 		}
-		room := NewRoom(player)
-		err = roomRepository.Save(room)
+		room, err := p.roomService.Create(player)
 		if err != nil {
-			fmt.Printf("error saving room: %v", err)
-			c.Status(http.StatusInternalServerError)
+			_ = c.Error(err)
 			return
 		}
 		metricOpenRooms.Add(1)
@@ -94,56 +109,41 @@ func createRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	}
 }
 
-func joinRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
+func (p *Parlour) joinRoomHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
 		name, err := getName(c)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
+			_ = c.Error(err)
 			return
 		}
 		player := Player{
 			ID:   playerID,
 			Name: name,
 		}
-		room.WithLock(func(r *Room) {
-			err = room.addPlayer(player)
-			if err != nil {
-				c.String(http.StatusBadRequest, err.Error())
-				return
-			}
-			err = roomRepository.Save(r)
-			if err != nil {
-				fmt.Printf("error saving room: %v", err)
-				c.Status(http.StatusInternalServerError)
-				return
-			}
-		})
+		err = p.roomService.AddPlayer(room, player)
 		if err != nil {
+			_ = c.Error(err)
 			return
 		}
 		c.Status(http.StatusNoContent)
 	}
 }
 
-func leaveRoomHandler(roomRepository RoomRepository) gin.HandlerFunc {
+func (p *Parlour) leaveRoomHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
-		room.WithLock(func(r *Room) {
-			room.removePlayer(playerID)
-			err := roomRepository.Save(r)
-			if err != nil {
-				fmt.Printf("error saving room: %v", err)
-				c.Status(http.StatusInternalServerError)
-				return
-			}
-		})
+		err := p.roomService.RemovePlayer(room, playerID)
+		if err != nil {
+			_ = c.Error(err)
+			return
+		}
 	}
 }
 
-func subscribeRoomHandler(_ RoomRepository) gin.HandlerFunc {
+func (p *Parlour) subscribeRoomHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
@@ -168,30 +168,19 @@ func subscribeRoomHandler(_ RoomRepository) gin.HandlerFunc {
 	}
 }
 
-func roomActionsHandler(roomRepository RoomRepository) gin.HandlerFunc {
+func (p *Parlour) roomActionsHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
 		var action Action
 		err := c.ShouldBindJSON(&action)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
+			_ = c.Error(err)
 			return
 		}
-		room.WithLock(func(r *Room) {
-			err = room.reduce(playerID, action)
-			if err != nil {
-				c.String(http.StatusBadRequest, err.Error())
-				return
-			}
-			err = roomRepository.Save(r)
-			if err != nil {
-				fmt.Printf("error saving room: %v", err)
-				c.Status(http.StatusInternalServerError)
-				return
-			}
-		})
+		err = p.roomService.Dispatch(room, playerID, action)
 		if err != nil {
+			_ = c.Error(err)
 			return
 		}
 	}
@@ -216,7 +205,7 @@ func setConcealedHandler() gin.HandlerFunc {
 		var tiles mahjong.TileBag
 		err = c.ShouldBindJSON(&tiles)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
+			_ = c.Error(err)
 			return
 		}
 		room.Round.Hands[seat].Concealed = tiles
@@ -239,31 +228,15 @@ func prependWallHandler() gin.HandlerFunc {
 	}
 }
 
-func addBotHandler(roomRepository RoomRepository) gin.HandlerFunc {
+func (p *Parlour) addBotHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
-		room.WithLock(func(r *Room) {
-			err := r.addBot(playerID)
-			if err != nil {
-				switch {
-				case errors.Is(err, errNotInRoom):
-					c.String(http.StatusForbidden, errNotInRoom.Error())
-				case errors.Is(err, errRoomFull):
-					c.String(http.StatusBadRequest, errRoomFull.Error())
-				default:
-					fmt.Printf("error adding bot to room: %v\n", err)
-					c.Status(http.StatusInternalServerError)
-				}
-				return
-			}
-			err = roomRepository.Save(r)
-			if err != nil {
-				fmt.Printf("error saving room: %v", err)
-				c.Status(http.StatusInternalServerError)
-				return
-			}
-		})
+		err := p.roomService.AddBot(room, playerID)
+		if err != nil {
+			_ = c.Error(err)
+			return
+		}
 	}
 }
 
@@ -287,16 +260,17 @@ func setRoomMiddleware(roomRepository RoomRepository) gin.HandlerFunc {
 
 func (p Parlour) configure(r *gin.Engine) {
 	r.Use(sessions.Sessions(KeySessionName, p.SessionStore))
-	r.Use(setPlayerIDMiddleware)
-	r.POST("/rooms", createRoomHandler(p.RoomRepository))
+	r.Use(setPlayerID)
+	r.Use(handleErrors)
+	r.POST("/rooms", p.createRoomHandler())
 	room := r.Group("/rooms/:roomID")
 	room.Use(setRoomMiddleware(p.RoomRepository))
 	{
-		room.POST("/players", joinRoomHandler(p.RoomRepository))
-		room.DELETE("/players", leaveRoomHandler(p.RoomRepository))
-		room.GET("/live", subscribeRoomHandler(p.RoomRepository))
-		room.POST("/actions", roomActionsHandler(p.RoomRepository))
-		room.POST("/bots", addBotHandler(p.RoomRepository))
+		room.POST("/players", p.joinRoomHandler())
+		room.DELETE("/players", p.leaveRoomHandler())
+		room.GET("/live", p.subscribeRoomHandler())
+		room.POST("/actions", p.roomActionsHandler())
+		room.POST("/bots", p.addBotHandler())
 		if gin.IsDebugging() {
 			room.PUT("/round/hands/:seat/concealed", setConcealedHandler())
 			room.POST("/round/wall", prependWallHandler())

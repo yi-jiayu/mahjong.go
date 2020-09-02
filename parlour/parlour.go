@@ -8,9 +8,20 @@ import (
 type Parlour struct {
 	RoomRepository RoomRepository
 	SessionStore   sessions.Store
+
+	roomService *roomService
 }
 
-func (p Parlour) Run(addr string) error {
+func New(roomRepository RoomRepository, sessionStore sessions.Store) *Parlour {
+	p := &Parlour{
+		RoomRepository: roomRepository,
+		SessionStore:   sessionStore,
+	}
+	p.roomService = &roomService{RoomRepository: roomRepository}
+	return p
+}
+
+func (p *Parlour) Run(addr string) error {
 	r := gin.Default()
 	p.configure(r)
 	return r.Run(addr)

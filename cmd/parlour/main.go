@@ -50,10 +50,7 @@ func main() {
 	authKey := getKey("PARLOUR_SESSION_AUTH_KEY")
 	encKey := getKey("PARLOUR_SESSION_ENC_KEY")
 	store := cookie.NewStore(authKey, encKey)
-	p := parlour.Parlour{
-		RoomRepository: roomRepository,
-		SessionStore:   store,
-	}
+	p := parlour.New(roomRepository, store)
 	err = p.Run(host + ":" + port)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)

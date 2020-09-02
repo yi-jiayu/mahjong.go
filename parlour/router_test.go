@@ -15,7 +15,7 @@ import (
 
 //go:generate ../bin/mockgen -destination mocks_test.go -package parlour -self_package github.com/yi-jiayu/mahjong.go/parlour . RoomRepository
 
-func Test_handleCreateRoom(t *testing.T) {
+func TestParlour_createRoomHandler(t *testing.T) {
 	roomID := "ABCD"
 
 	ctrl := gomock.NewController(t)
@@ -28,10 +28,7 @@ func Test_handleCreateRoom(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	parlour := &Parlour{
-		RoomRepository: roomRepository,
-		SessionStore:   memstore.NewStore(),
-	}
+	parlour := New(roomRepository, memstore.NewStore())
 	parlour.configure(router)
 
 	w := httptest.NewRecorder()
@@ -43,7 +40,7 @@ func Test_handleCreateRoom(t *testing.T) {
 	assert.Equal(t, roomID, w.Body.String())
 }
 
-func Test_handleJoinRoom(t *testing.T) {
+func TestParlour_joinRoomHandler(t *testing.T) {
 	room := NewRoom(Player{Name: "alice"})
 	room.ID = "ABCD"
 
@@ -55,10 +52,7 @@ func Test_handleJoinRoom(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	parlour := &Parlour{
-		RoomRepository: roomRepository,
-		SessionStore:   memstore.NewStore(),
-	}
+	parlour := New(roomRepository, memstore.NewStore())
 	parlour.configure(router)
 
 	w := httptest.NewRecorder()
