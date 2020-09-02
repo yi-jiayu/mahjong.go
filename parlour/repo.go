@@ -148,6 +148,21 @@ func (p *PostgresRoomRepository) Get(id string) (*Room, error) {
 		return nil, fmt.Errorf("error getting room: %w", err)
 	}
 	room.clients = make(map[chan string]string)
+
+	// start bots
+	for _, player := range room.Players {
+		if player.IsBot {
+			bot := Bot{
+				ID:      player.ID,
+				Room:    &room,
+				Updates: make(chan string, 1),
+			}
+			room.clients[bot.Updates] = bot.ID
+			go bot.Start()
+		}
+	}
+	room.broadcast()
+
 	p.cache[room.ID] = &room
 	return &room, nil
 }

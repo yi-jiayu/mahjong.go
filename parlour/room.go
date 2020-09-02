@@ -257,6 +257,7 @@ func (r *Room) addBot(playerID string) error {
 	go bot.Start()
 	return nil
 }
+
 func NewRoom(host Player) *Room {
 	room := &Room{
 		Phase:   PhaseLobby,
