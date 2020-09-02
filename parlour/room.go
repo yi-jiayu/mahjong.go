@@ -19,13 +19,16 @@ const (
 )
 
 var (
+	errRoomFull     = errors.New("room full")
+	errNotInRoom    = errors.New("not in room")
 	errForbidden    = errors.New("forbidden")
 	errInvalidNonce = errors.New("invalid nonce")
 )
 
 type Player struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	IsBot bool   `json:"is_bot"`
 }
 
 type Room struct {
@@ -229,6 +232,31 @@ func (r *Room) nextRound() error {
 	return nil
 }
 
+var botNames = []string{"Francisco Bot", "Lupe Bot", "Mordecai Bot"}
+
+func (r *Room) addBot(playerID string) error {
+	if r.seat(playerID) == -1 {
+		return errNotInRoom
+	}
+	if len(r.Players) > 3 {
+		return errRoomFull
+	}
+	name := botNames[len(r.Players)-1]
+	r.Players = append(r.Players, Player{
+		ID:    name,
+		Name:  name,
+		IsBot: true,
+	})
+	r.broadcast()
+	bot := Bot{
+		ID:      name,
+		Room:    r,
+		Updates: make(chan string),
+	}
+	r.clients[bot.Updates] = bot.ID
+	go bot.Start()
+	return nil
+}
 func NewRoom(host Player) *Room {
 	room := &Room{
 		Phase:   PhaseLobby,

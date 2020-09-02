@@ -239,35 +239,30 @@ func prependWallHandler() gin.HandlerFunc {
 	}
 }
 
-var botNames = [4]string{"Barty Bot", "Francisco Bot", "Lupe Bot", "Mordecai Bot"}
-
-func addBotHandler(_ RoomRepository) gin.HandlerFunc {
+func addBotHandler(roomRepository RoomRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
 		room.WithLock(func(r *Room) {
-			if r.seat(playerID) == -1 {
-				c.String(http.StatusForbidden, "not in room")
+			err := r.addBot(playerID)
+			if err != nil {
+				switch {
+				case errors.Is(err, errNotInRoom):
+					c.String(http.StatusForbidden, errNotInRoom.Error())
+				case errors.Is(err, errRoomFull):
+					c.String(http.StatusBadRequest, errRoomFull.Error())
+				default:
+					fmt.Printf("error adding bot to room: %v\n", err)
+					c.Status(http.StatusInternalServerError)
+				}
 				return
 			}
-			if len(r.Players) == 4 {
-				c.String(http.StatusBadRequest, "room full")
+			err = roomRepository.Save(r)
+			if err != nil {
+				fmt.Printf("error saving room: %v", err)
+				c.Status(http.StatusInternalServerError)
 				return
 			}
-			botID := newPlayerID(16)
-			r.Players = append(r.Players, Player{
-				ID:   botID,
-				Name: botNames[len(r.Players)],
-			})
-			r.broadcast()
-			ch := make(chan string, 1)
-			r.clients[ch] = botID
-			bot := Bot{
-				ID:      botID,
-				Room:    room,
-				Updates: ch,
-			}
-			go bot.Start()
 		})
 	}
 }
