@@ -148,10 +148,6 @@ const (
 	// is has 14 tiles in their hand and must discard a tile. They may also
 	// reveal a concealed gang or win by self-draw.
 	PhaseDiscard Phase = "discard"
-
-	// PhaseFinished represents the the end of a round, after a player wins or
-	// the wall runs out of draws.
-	PhaseFinished Phase = "finished"
 )
 
 // Result represents the outcome of a round.

@@ -510,7 +510,7 @@ func TestRound_Hu(t *testing.T) {
 		now := time.Now()
 		err := r.Hu(seat, now)
 		assert.NoError(t, err)
-		assert.Equal(t, PhaseFinished, r.Phase)
+		assert.True(t, r.Finished)
 		assert.Equal(t, []Meld{
 			{Type: MeldChi, Tiles: []Tile{"15三筒", "16四筒", "17五筒"}},
 			{Type: MeldChi, Tiles: []Tile{"27六索", "28七索", "29八索"}},
@@ -564,7 +564,7 @@ func TestRound_Hu(t *testing.T) {
 		err := r.Hu(seat, time.Now())
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, r.Discards)
-		assert.Equal(t, PhaseFinished, r.Phase)
+		assert.True(t, r.Finished)
 		assert.Equal(t, Result{
 			Winner: seat,
 			WinningTiles: []Tile{
@@ -789,7 +789,7 @@ func TestRound_End(t *testing.T) {
 		now := time.Now()
 		err := r.End(0, now)
 		assert.NoError(t, err)
-		assert.Equal(t, PhaseFinished, r.Phase)
+		assert.True(t, r.Finished)
 		assert.Equal(t, Result{
 			Dealer: r.Dealer,
 			Wind:   r.Wind,
@@ -802,14 +802,14 @@ func TestRound_End(t *testing.T) {
 
 func TestRound_Next(t *testing.T) {
 	t.Run("cannot create next round when current round is not finished", func(t *testing.T) {
-		r := &Round{Phase: PhaseDiscard}
+		r := &Round{Finished: false}
 		_, err := r.Next()
 		assert.EqualError(t, err, "unfinished")
 	})
 	t.Run("dealer does not win and dealer moves on", func(t *testing.T) {
 		r := &Round{
-			Phase:  PhaseFinished,
-			Dealer: 0,
+			Finished: true,
+			Dealer:   0,
 			Result: Result{
 				Winner: 2,
 			},
@@ -820,8 +820,8 @@ func TestRound_Next(t *testing.T) {
 	})
 	t.Run("dealer wins and remains dealer", func(t *testing.T) {
 		r := &Round{
-			Phase:  PhaseFinished,
-			Dealer: 2,
+			Finished: true,
+			Dealer:   2,
 			Result: Result{
 				Winner: 2,
 			},
@@ -832,9 +832,9 @@ func TestRound_Next(t *testing.T) {
 	})
 	t.Run("dealer moves on and prevailing wind changes", func(t *testing.T) {
 		r := &Round{
-			Phase:  PhaseFinished,
-			Dealer: 3,
-			Wind:   DirectionEast,
+			Finished: true,
+			Dealer:   3,
+			Wind:     DirectionEast,
 			Result: Result{
 				Winner: 0,
 			},
@@ -847,7 +847,7 @@ func TestRound_Next(t *testing.T) {
 	t.Run("copies over round settings", func(t *testing.T) {
 		r := &Round{
 			Scores:           [4]int{4, 2, 1, -2},
-			Phase:            PhaseFinished,
+			Finished:         true,
 			ReservedDuration: 2 * time.Second,
 			Rules:            RulesShooter,
 		}
@@ -859,9 +859,9 @@ func TestRound_Next(t *testing.T) {
 	})
 	t.Run("no more rounds", func(t *testing.T) {
 		r := &Round{
-			Phase:  PhaseFinished,
-			Dealer: 3,
-			Wind:   DirectionNorth,
+			Finished: true,
+			Dealer:   3,
+			Wind:     DirectionNorth,
 			Result: Result{
 				Winner: 0,
 			},

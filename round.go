@@ -46,6 +46,9 @@ type Round struct {
 	// Rules are the scoring rules for this round.
 	Rules Rules
 
+	// Finished indicates whether a round is over.
+	Finished bool
+
 	LastActionTime   time.Time
 	ReservedDuration time.Duration
 }
@@ -344,7 +347,7 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	for i, delta := range winnings(r.Rules, seat, loser, points) {
 		r.Scores[i] += delta
 	}
-	r.Phase = PhaseFinished
+	r.Finished = true
 	return nil
 }
 
@@ -431,7 +434,7 @@ func (r *Round) Start(seed int64, t time.Time) {
 // Next returns a new round, setting the dealer and the prevailing wind
 // depending on the outcome of this round.
 func (r *Round) Next() (*Round, error) {
-	if r.Phase != PhaseFinished {
+	if !r.Finished {
 		return nil, errors.New("unfinished")
 	}
 	dealer := r.Dealer
@@ -466,7 +469,7 @@ func (r *Round) End(seat int, t time.Time) error {
 	if len(r.Wall) >= MinTilesLeft {
 		return errors.New("some draws remaining")
 	}
-	r.Phase = PhaseFinished
+	r.Finished = true
 	r.Result = Result{
 		Dealer: r.Dealer,
 		Wind:   r.Wind,
