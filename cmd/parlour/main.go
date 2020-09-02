@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-contrib/sessions/cookie"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/yi-jiayu/mahjong.go/parlour"
 )
 
@@ -41,12 +41,12 @@ func getKey(name string) []byte {
 }
 
 func main() {
-	conn, err := pgx.Connect(context.Background(), database)
+	pool, err := pgxpool.Connect(context.Background(), database)
 	if err != nil {
 		fmt.Printf("error connecting to postgres: %v", err)
 		os.Exit(1)
 	}
-	roomRepository := parlour.NewPostgresRoomRepository(conn)
+	roomRepository := parlour.NewPostgresRoomRepository(pool)
 	authKey := getKey("PARLOUR_SESSION_AUTH_KEY")
 	encKey := getKey("PARLOUR_SESSION_ENC_KEY")
 	store := cookie.NewStore(authKey, encKey)
