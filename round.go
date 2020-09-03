@@ -411,12 +411,19 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	}
 	r.Hands[seat].Concealed = TileBag{}
 	r.Hands[seat].Finished = best.Tiles()
+	// undo previous score distribution if someone won previously
+	if r.Result != nil {
+		for i, delta := range winnings(r.Rules, r.Result.Winner, r.Result.Loser, r.Result.Points) {
+			r.Scores[i] -= delta
+		}
+	}
 	r.Result = &Result{
 		Dealer:       r.Dealer,
 		Wind:         r.Wind,
 		Winner:       seat,
 		WinningTiles: winningTiles(r.Hands[seat].Flowers, r.Hands[seat].Revealed, best),
 		Loser:        loser,
+		Points:       points,
 	}
 	r.LastActionTime = t
 	r.Events = append(r.Events, newEvent(EventHu, seat, t))
