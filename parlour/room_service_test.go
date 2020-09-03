@@ -34,6 +34,15 @@ func Test_roomService_Save(t *testing.T) {
 }
 
 func Test_roomService_Get(t *testing.T) {
+	t.Run("normalises room ID to upper case", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		roomRepository := NewMockRoomRepository(ctrl)
+		roomRepository.EXPECT().Get("ABCD").Return(&Room{ID: "ABCD"}, nil)
+
+		service := newRoomService(roomRepository)
+		_, _ = service.Get("abcd")
+	})
 	t.Run("caches room in memory", func(t *testing.T) {
 		roomID := "ABCD"
 

@@ -1,5 +1,9 @@
 package parlour
 
+import (
+	"strings"
+)
+
 type Error struct {
 	error
 	internal bool
@@ -25,6 +29,7 @@ func (s *roomService) Save(room *Room) error {
 }
 
 func (s *roomService) Get(id string) (*Room, error) {
+	id = strings.ToUpper(id)
 	if room, ok := s.cache[id]; ok {
 		return room, nil
 	}
