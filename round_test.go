@@ -213,7 +213,7 @@ func TestRound_Chi(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileBamboo4}, r.Discards)
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest}), r.Hands[0].Concealed)
-		assert.Equal(t, []Meld{{
+		assert.Equal(t, Melds{{
 			Type:  MeldChi,
 			Tiles: []Tile{TileBamboo1, TileBamboo2, TileBamboo3},
 		}}, r.Hands[0].Revealed)
@@ -271,7 +271,7 @@ func TestRound_Pong(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDots1}, r.Discards)
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest}), r.Hands[seat].Concealed)
-		assert.Equal(t, []Meld{{
+		assert.Equal(t, Melds{{
 			Type:  MeldPong,
 			Tiles: []Tile{TileDragonsRed},
 		}}, r.Hands[seat].Revealed)
@@ -336,7 +336,7 @@ func TestRound_GangFromDiscard(t *testing.T) {
 		assert.Equal(t, []Tile{TileDots1}, r.Discards)
 		assert.Equal(t, []Tile{TileCat, TileGentlemen1}, r.Hands[seat].Flowers)
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileCharacters6}), r.Hands[seat].Concealed)
-		assert.Equal(t, []Meld{{
+		assert.Equal(t, Melds{{
 			Type:  MeldGang,
 			Tiles: []Tile{TileDragonsRed},
 		}}, r.Hands[seat].Revealed)
@@ -388,7 +388,7 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, TileDots4, replacement)
 		assert.Equal(t, []Tile{TileCat}, flowers)
-		assert.Equal(t, []Meld{{
+		assert.Equal(t, Melds{{
 			Type:  MeldGang,
 			Tiles: []Tile{TileDragonsRed},
 		}}, r.Hands[seat].Revealed)
@@ -424,7 +424,7 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, TileDots4, replacement)
 		assert.Equal(t, []Tile{TileCat}, flowers)
-		assert.Equal(t, []Meld{{
+		assert.Equal(t, Melds{{
 			Type:  MeldGang,
 			Tiles: []Tile{TileDragonsRed},
 		}}, r.Hands[seat].Revealed)
@@ -447,11 +447,6 @@ func TestRound_Hu(t *testing.T) {
 		r := &Round{Turn: 1}
 		err := r.Hu(0, time.Now())
 		assert.EqualError(t, err, "wrong turn")
-	})
-	t.Run("cannot hu during own draw phase", func(t *testing.T) {
-		r := &Round{Turn: 0, Phase: PhaseDraw}
-		err := r.Hu(0, time.Now())
-		assert.EqualError(t, err, "wrong phase")
 	})
 	t.Run("cannot hu during other player's discard phase", func(t *testing.T) {
 		r := &Round{Turn: 2, Phase: PhaseDiscard}
@@ -511,15 +506,17 @@ func TestRound_Hu(t *testing.T) {
 		err := r.Hu(seat, now)
 		assert.NoError(t, err)
 		assert.True(t, r.Finished)
-		assert.Equal(t, []Meld{
-			{Type: MeldChi, Tiles: []Tile{"15三筒", "16四筒", "17五筒"}},
-			{Type: MeldChi, Tiles: []Tile{"27六索", "28七索", "29八索"}},
-			{Type: MeldPong, Tiles: []Tile{"38八万"}},
-			{Type: MeldPong, Tiles: []Tile{"42西风"}},
-			{Type: MeldEyes, Tiles: []Tile{"46白板"}},
+		assert.Equal(t, Melds{
+			{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}},
 		}, r.Hands[seat].Revealed)
 		assert.Equal(t, TileBag{}, r.Hands[seat].Concealed)
-		assert.Equal(t, Result{
+		assert.Equal(t, []Tile{
+			TileBamboo6, TileBamboo7, TileBamboo8,
+			TileCharacters8, TileCharacters8, TileCharacters8,
+			TileWindsWest, TileWindsWest, TileWindsWest,
+			TileDragonsWhite, TileDragonsWhite,
+		}, r.Hands[seat].Finished)
+		assert.Equal(t, &Result{
 			Winner: seat,
 			WinningTiles: []Tile{
 				"05梅", "01猫",
@@ -565,7 +562,7 @@ func TestRound_Hu(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []Tile{TileDragonsRed}, r.Discards)
 		assert.True(t, r.Finished)
-		assert.Equal(t, Result{
+		assert.Equal(t, &Result{
 			Winner: seat,
 			WinningTiles: []Tile{
 				"05梅", "01猫",
@@ -574,6 +571,139 @@ func TestRound_Hu(t *testing.T) {
 				"38八万", "38八万", "38八万",
 				"42西风", "42西风", "42西风",
 				"46白板", "46白板",
+			},
+		}, r.Result)
+	})
+	t.Run("cannot hu again after huing", func(t *testing.T) {
+		r := &Round{
+			Turn:     0,
+			Phase:    PhaseDiscard,
+			Result:   &Result{Winner: 0},
+			Finished: true,
+		}
+		err := r.Hu(0, time.Now())
+		assert.EqualError(t, err, "already won")
+	})
+	t.Run("cannot override someone with higher precedence", func(t *testing.T) {
+		r := &Round{
+			Turn:             0,
+			Phase:            PhaseDraw,
+			Discards:         []Tile{TileDragonsRed, TileDragonsWhite},
+			ReservedDuration: time.Second,
+			Hands: [4]Hand{{},
+				{
+					Flowers:  []Tile{TileGentlemen1, TileCat},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileDragonsWhite,
+					}),
+				},
+			},
+		}
+		_ = r.Hu(1, time.Now())
+		err := r.Hu(2, time.Now())
+		assert.EqualError(t, err, "no precedence")
+	})
+	t.Run("can NOT be overridden by another player with higher precedence after reserved duration", func(t *testing.T) {
+		seat := 1
+		r := &Round{
+			Turn:     0, // means seat 3 discarded
+			Phase:    PhaseDraw,
+			Discards: []Tile{TileDragonsRed, TileDragonsWhite},
+			Hands: [4]Hand{
+				{},
+				// seat 1 can also hu on the same tile
+				{
+					Flowers:  []Tile{TileGentlemen1, TileCat},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileDragonsWhite,
+					}),
+				},
+				{
+					Flowers:  []Tile{TileGentlemen1, TileCat},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileDragonsWhite,
+					}),
+				},
+			},
+		}
+		now := time.Now()
+		oneSecondLater := now.Add(time.Second)
+		// seat 2 hus first
+		_ = r.Hu(2, now)
+
+		// player 1 hus, but reserved duration is 0 so it's too late
+		err := r.Hu(seat, oneSecondLater)
+		assert.EqualError(t, err, "too late")
+	})
+	t.Run("can be overridden by another player with higher precedence within reserved duration", func(t *testing.T) {
+		seat := 1
+		r := &Round{
+			Turn:             0, // means seat 3 discarded
+			Phase:            PhaseDraw,
+			Discards:         []Tile{TileDragonsRed, TileDragonsWhite},
+			ReservedDuration: 2 * time.Second,
+			Hands: [4]Hand{
+				{},
+				// seat 1 can also hu on the same tile
+				{
+					Flowers:  []Tile{TileGentlemen1, TileCat},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileDragonsWhite, TileDragonsWhite, // needs a pong
+						TileCharacters8, TileCharacters8,
+					}),
+				},
+				{
+					Flowers:  []Tile{TileGentlemen1, TileCat},
+					Revealed: []Meld{{Type: MeldChi, Tiles: []Tile{TileDots3, TileDots4, TileDots5}}},
+					Concealed: NewTileBag([]Tile{
+						TileBamboo6, TileBamboo7, TileBamboo8,
+						TileWindsWest, TileWindsWest, TileWindsWest,
+						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileDragonsWhite, // needs eyes
+					}),
+				},
+			},
+		}
+		now := time.Now()
+		oneSecondLater := now.Add(time.Second)
+		// seat 2 hus first
+		_ = r.Hu(2, now)
+
+		// player 1 hus
+		err := r.Hu(seat, oneSecondLater)
+		assert.NoError(t, err)
+		assert.Equal(t, []Tile{
+			TileBamboo6, TileBamboo7, TileBamboo8,
+			TileCharacters8, TileCharacters8, TileCharacters8,
+			TileWindsWest, TileWindsWest, TileWindsWest,
+			TileDragonsWhite, // winning tile was removed
+		}, r.Hands[2].Finished)
+		assert.Equal(t, []Tile{TileDragonsRed}, r.Discards)
+		assert.True(t, r.Finished)
+		assert.Equal(t, &Result{
+			Winner: seat,
+			WinningTiles: []Tile{
+				TileGentlemen1, TileCat,
+				TileDots3, TileDots4, TileDots5,
+				TileBamboo6, TileBamboo7, TileBamboo8,
+				TileWindsWest, TileWindsWest, TileWindsWest,
+				TileDragonsWhite, TileDragonsWhite, TileDragonsWhite,
+				TileCharacters8, TileCharacters8,
 			},
 		}, r.Result)
 	})
@@ -790,7 +920,7 @@ func TestRound_End(t *testing.T) {
 		err := r.End(0, now)
 		assert.NoError(t, err)
 		assert.True(t, r.Finished)
-		assert.Equal(t, Result{
+		assert.Equal(t, &Result{
 			Dealer: r.Dealer,
 			Wind:   r.Wind,
 			Winner: -1,
@@ -810,7 +940,7 @@ func TestRound_Next(t *testing.T) {
 		r := &Round{
 			Finished: true,
 			Dealer:   0,
-			Result: Result{
+			Result: &Result{
 				Winner: 2,
 			},
 		}
@@ -822,7 +952,7 @@ func TestRound_Next(t *testing.T) {
 		r := &Round{
 			Finished: true,
 			Dealer:   2,
-			Result: Result{
+			Result: &Result{
 				Winner: 2,
 			},
 		}
@@ -835,7 +965,7 @@ func TestRound_Next(t *testing.T) {
 			Finished: true,
 			Dealer:   3,
 			Wind:     DirectionEast,
-			Result: Result{
+			Result: &Result{
 				Winner: 0,
 			},
 		}
@@ -850,6 +980,7 @@ func TestRound_Next(t *testing.T) {
 			Finished:         true,
 			ReservedDuration: 2 * time.Second,
 			Rules:            RulesShooter,
+			Result:           &Result{},
 		}
 		next, err := r.Next()
 		assert.NoError(t, err)
@@ -862,7 +993,7 @@ func TestRound_Next(t *testing.T) {
 			Finished: true,
 			Dealer:   3,
 			Wind:     DirectionNorth,
-			Result: Result{
+			Result: &Result{
 				Winner: 0,
 			},
 		}

@@ -41,13 +41,17 @@ type Round struct {
 	Events []Event
 
 	// Result is the outcome of the round.
-	Result Result
+	Result *Result
 
 	// Rules are the scoring rules for this round.
 	Rules Rules
 
 	// Finished indicates whether a round is over.
 	Finished bool
+
+	// WinningTile is used to determine if another player with higher
+	// precedence can hu after someone else has already done so.
+	WinningTile Tile
 
 	LastActionTime   time.Time
 	ReservedDuration time.Duration
@@ -295,8 +299,23 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 	return
 }
 
-func bestHand(winningHands [][]Meld, round *Round, seat int) ([]Meld, int) {
+func bestHand(winningHands []Melds, round *Round, seat int) (Melds, int) {
 	return winningHands[0], score(round, seat, winningHands[0])
+}
+
+func winningTiles(flowers []Tile, melds Melds, rest Melds) []Tile {
+	melds = append(melds, rest...)
+	sort.Sort(melds)
+	return append(flowers, melds.Tiles()...)
+}
+
+func removeTile(tiles []Tile, tile Tile) []Tile {
+	for i, t := range tiles {
+		if t == tile {
+			return append(tiles[:i], tiles[i+1:]...)
+		}
+	}
+	return tiles
 }
 
 func (r *Round) Hu(seat int, t time.Time) error {
@@ -306,12 +325,29 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	if r.Turn != seat && r.Phase == PhaseDiscard {
 		return errors.New("wrong turn")
 	}
-	if r.Turn == seat && r.Phase == PhaseDraw {
-		return errors.New("wrong phase")
+	if r.Finished {
+		if seat == r.Result.Winner {
+			return errors.New("already won")
+		}
+		if r.Phase == PhaseDraw {
+			if t.After(r.LastActionTime.Add(r.ReservedDuration)) {
+				return errors.New("too late")
+			}
+			loser := r.previousTurn()
+			winnerPrecedence := (r.Result.Winner - loser + 3) % 4
+			precedence := (seat - loser + 3) % 4
+			if precedence >= winnerPrecedence {
+				return errors.New("no precedence")
+			}
+		}
 	}
 	var additionalTiles []Tile
 	if r.Phase == PhaseDraw {
-		additionalTiles = []Tile{r.lastDiscard()}
+		if r.Finished {
+			additionalTiles = []Tile{r.WinningTile}
+		} else {
+			additionalTiles = []Tile{r.lastDiscard()}
+		}
 	}
 	winningHands := search(r.Hands[seat].Concealed, additionalTiles...)
 	if len(winningHands) == 0 {
@@ -321,20 +357,22 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	if points == 0 {
 		return errors.New("no tai")
 	}
-	// remove the last discard if the player has a winning hand
 	if r.Phase == PhaseDraw {
-		r.popLastDiscard()
+		if !r.Finished {
+			// take the winning tile from the discard pile
+			r.WinningTile = r.popLastDiscard()
+		} else {
+			// take it from the previous winner
+			r.Hands[r.Result.Winner].Finished = removeTile(r.Hands[r.Result.Winner].Finished, r.WinningTile)
+		}
 	}
-	// for now, take the first winning hand
-	// ideally we will take the highest scoring hand
-	r.Hands[seat].Revealed = append(r.Hands[seat].Revealed, best...)
 	r.Hands[seat].Concealed = TileBag{}
-	sort.Sort(Melds(r.Hands[seat].Revealed))
-	r.Result = Result{
+	r.Hands[seat].Finished = best.Tiles()
+	r.Result = &Result{
 		Dealer:       r.Dealer,
 		Wind:         r.Wind,
 		Winner:       seat,
-		WinningTiles: append(r.Hands[seat].Flowers, Melds(r.Hands[seat].Revealed).Tiles()...),
+		WinningTiles: winningTiles(r.Hands[seat].Flowers, r.Hands[seat].Revealed, best),
 	}
 	r.LastActionTime = t
 	r.Events = append(r.Events, newEvent(EventHu, seat, t))
@@ -470,7 +508,7 @@ func (r *Round) End(seat int, t time.Time) error {
 		return errors.New("some draws remaining")
 	}
 	r.Finished = true
-	r.Result = Result{
+	r.Result = &Result{
 		Dealer: r.Dealer,
 		Wind:   r.Wind,
 		Winner: -1,
@@ -505,6 +543,7 @@ func (r *Round) View(seat int) RoundView {
 		Result:           r.Result,
 		LastActionTime:   r.LastActionTime.UnixNano() / 1e6,
 		ReservedDuration: r.ReservedDuration.Milliseconds(),
+		Finished:         r.Finished,
 	}
 }
 

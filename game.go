@@ -111,8 +111,9 @@ func NewTileBag(tiles []Tile) TileBag {
 // Hand represents all the tiles belonging to a player.
 type Hand struct {
 	Flowers   []Tile  `json:"flowers"`
-	Revealed  []Meld  `json:"revealed"`
-	Concealed TileBag `json:"concealed"`
+	Revealed  Melds   `json:"revealed"`
+	Concealed TileBag `json:"concealed,omitempty"`
+	Finished  []Tile  `json:"finished,omitempty"`
 }
 
 // View returns another player's view of a hand.
@@ -121,6 +122,7 @@ func (h Hand) View() Hand {
 		Flowers:   h.Flowers,
 		Revealed:  h.Revealed,
 		Concealed: TileBag{"": h.Concealed.Cardinality()},
+		Finished:  h.Finished,
 	}
 }
 

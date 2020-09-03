@@ -38,8 +38,8 @@ func push(stack []searchState, state searchState) []searchState {
 	return append(stack, state)
 }
 
-func search(tiles TileBag, additionalTiles ...Tile) [][]Meld {
-	var results [][]Meld
+func search(tiles TileBag, additionalTiles ...Tile) []Melds {
+	var results []Melds
 	seen := make(map[string]struct{})
 	initial := searchState{tiles: tiles}.copy()
 	for _, tile := range additionalTiles {
@@ -62,6 +62,7 @@ func search(tiles TileBag, additionalTiles ...Tile) [][]Meld {
 						Type:  MeldEyes,
 						Tiles: []Tile{tile},
 					})
+					sort.Sort(melds)
 					results = append(results, melds)
 					continue
 				}

@@ -12,7 +12,8 @@ type RoundView struct {
 	Turn      int       `json:"turn"`
 	Phase     Phase     `json:"phase"`
 	Events    []Event   `json:"events"`
-	Result    Result    `json:"result"`
+	Result    *Result   `json:"result,omitempty"`
+	Finished  bool      `json:"finished"`
 
 	// LastActionTime is the time the last action took place represented in milliseconds since the Unix epoch.
 	LastActionTime int64 `json:"last_action_time"`

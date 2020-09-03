@@ -15,7 +15,7 @@ func Test_search(t *testing.T) {
 			TileDragonsWhite, TileDragonsWhite,
 		})
 		result := search(tiles)
-		assert.Equal(t, [][]Meld{
+		assert.Equal(t, []Melds{
 			{
 				{Type: MeldChi, Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
 				{Type: MeldChi, Tiles: []Tile{"13一筒", "14二筒", "15三筒"}},
@@ -45,7 +45,7 @@ func Test_search(t *testing.T) {
 			TileDragonsWhite, TileDragonsWhite,
 		})
 		result := search(tiles)
-		assert.Equal(t, [][]Meld{{{Type: MeldEyes, Tiles: []Tile{"46白板"}}}}, result)
+		assert.Equal(t, []Melds{{{Type: MeldEyes, Tiles: []Tile{"46白板"}}}}, result)
 	})
 }
 
