@@ -7,6 +7,44 @@ type Error struct {
 
 type roomService struct {
 	RoomRepository
+
+	cache map[string]*Room
+}
+
+func (s *roomService) Save(room *Room) error {
+	err := s.RoomRepository.Save(room)
+	if err != nil {
+		return &Error{error: err, internal: true}
+	}
+	s.cache[room.ID] = room
+	return nil
+}
+
+func (s *roomService) Get(id string) (*Room, error) {
+	if room, ok := s.cache[id]; ok {
+		return room, nil
+	}
+	room, err := s.RoomRepository.Get(id)
+	if err != nil {
+		return nil, &Error{error: err, internal: true}
+	}
+	s.cache[room.ID] = room
+
+	// start bots
+	for _, player := range room.Players {
+		if player.IsBot {
+			bot := Bot{
+				ID:      player.ID,
+				Room:    room,
+				Updates: make(chan string, 1),
+			}
+			room.clients[bot.Updates] = bot.ID
+			go bot.Start(s)
+		}
+	}
+	room.broadcast()
+
+	return room, nil
 }
 
 func (s *roomService) Create(host Player) (*Room, error) {
@@ -68,19 +106,45 @@ func (s *roomService) Dispatch(room *Room, playerID string, action Action) error
 	return svcErr
 }
 
+var botNames = []string{"Francisco Bot", "Lupe Bot", "Mordecai Bot"}
+
 func (s *roomService) AddBot(room *Room, playerID string) error {
 	var svcErr error
 	room.WithLock(func(r *Room) {
-		err := r.addBot(playerID)
-		if err != nil {
-			svcErr = &Error{error: err}
+		if r.seat(playerID) == -1 {
+			svcErr = &Error{error: errNotInRoom}
 			return
 		}
-		err = s.RoomRepository.Save(r)
+		if len(r.Players) > 3 {
+			svcErr = &Error{error: errRoomFull}
+			return
+		}
+		name := botNames[len(r.Players)-1]
+		r.Players = append(r.Players, Player{
+			ID:    name,
+			Name:  name,
+			IsBot: true,
+		})
+		r.broadcast()
+		bot := Bot{
+			ID:      name,
+			Room:    r,
+			Updates: make(chan string),
+		}
+		r.clients[bot.Updates] = bot.ID
+		go bot.Start(s)
+		err := s.RoomRepository.Save(r)
 		if err != nil {
 			svcErr = &Error{error: nil, internal: true}
 			return
 		}
 	})
 	return svcErr
+}
+
+func newRoomService(roomRepository RoomRepository) *roomService {
+	return &roomService{
+		RoomRepository: roomRepository,
+		cache:          make(map[string]*Room),
+	}
 }

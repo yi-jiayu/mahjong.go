@@ -240,10 +240,10 @@ func (p *Parlour) addBotHandler() gin.HandlerFunc {
 	}
 }
 
-func setRoomMiddleware(roomRepository RoomRepository) gin.HandlerFunc {
+func (p *Parlour) setRoomMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roomID := c.Param("roomID")
-		room, err := roomRepository.Get(roomID)
+		room, err := p.roomService.Get(roomID)
 		if errors.Is(err, errNotFound) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
@@ -264,7 +264,7 @@ func (p Parlour) configure(r *gin.Engine) {
 	r.Use(handleErrors)
 	r.POST("/rooms", p.createRoomHandler())
 	room := r.Group("/rooms/:roomID")
-	room.Use(setRoomMiddleware(p.RoomRepository))
+	room.Use(p.setRoomMiddleware())
 	{
 		room.POST("/players", p.joinRoomHandler())
 		room.DELETE("/players", p.leaveRoomHandler())

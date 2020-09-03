@@ -43,7 +43,6 @@ func TestPostgresRoomRepository_Save(t *testing.T) {
 		err = repo.Save(room)
 		assert.NoError(t, err)
 
-		repo.cache = make(map[string]*Room) // clear cache
 		got, err := repo.Get("ABCD")
 		assert.NoError(t, err)
 		assert.Equal(t, PhaseInProgress, got.Phase)
@@ -60,7 +59,6 @@ func TestPostgresRoomRepository_Save(t *testing.T) {
 		err := repo.Save(room)
 		assert.NoError(t, err)
 
-		repo.cache = make(map[string]*Room) // clear cache
 		got, err := repo.Get(room.ID)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, got.ID)
@@ -77,23 +75,6 @@ func TestPostgresRoomRepository_Save(t *testing.T) {
 		err := repo.Save(room)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, room.ID)
-	})
-	t.Run("caches room in memory", func(t *testing.T) {
-		tx := getTx()
-		defer tx.Rollback(context.Background())
-
-		repo := NewPostgresRoomRepository(tx)
-		room := NewRoom(Player{
-			ID:   "iPRk13H8j/MHaP3vhCjnAg",
-			Name: "Jiayu",
-		})
-		err := repo.Save(room)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, room.ID)
-
-		room2, err := repo.Get(room.ID)
-		assert.NoError(t, err)
-		assert.Same(t, room, room2)
 	})
 }
 
@@ -114,8 +95,4 @@ func TestPostgresRoomRepository_Get(t *testing.T) {
 	got, err := repo.Get(room.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, room, got)
-
-	got2, err := repo.Get(room.ID)
-	assert.NoError(t, err)
-	assert.Same(t, got, got2, "should returned cached room if exists")
 }

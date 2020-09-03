@@ -73,8 +73,7 @@ type Conn interface {
 }
 
 type PostgresRoomRepository struct {
-	cache map[string]*Room
-	conn  Conn
+	conn Conn
 }
 
 func (p *PostgresRoomRepository) Save(room *Room) error {
@@ -109,7 +108,6 @@ values ($1, $2, $3, $4, $5)`,
 				return fmt.Errorf("error inserting room: %w", err)
 			}
 			room.ID = id
-			p.cache[id] = room
 			return nil
 		}
 	}
@@ -128,14 +126,10 @@ on conflict (id) do update set nonce=excluded.nonce,
 	if err != nil {
 		return fmt.Errorf("error saving room: %w", err)
 	}
-	p.cache[room.ID] = room
 	return nil
 }
 
 func (p *PostgresRoomRepository) Get(id string) (*Room, error) {
-	if room, ok := p.cache[id]; ok {
-		return room, nil
-	}
 	var room Room
 	err := p.conn.QueryRow(
 		context.Background(),
@@ -148,28 +142,11 @@ func (p *PostgresRoomRepository) Get(id string) (*Room, error) {
 		return nil, fmt.Errorf("error getting room: %w", err)
 	}
 	room.clients = make(map[chan string]string)
-
-	// start bots
-	for _, player := range room.Players {
-		if player.IsBot {
-			bot := Bot{
-				ID:      player.ID,
-				Room:    &room,
-				Updates: make(chan string, 1),
-			}
-			room.clients[bot.Updates] = bot.ID
-			go bot.Start()
-		}
-	}
-	room.broadcast()
-
-	p.cache[room.ID] = &room
 	return &room, nil
 }
 
 func NewPostgresRoomRepository(conn Conn) *PostgresRoomRepository {
 	return &PostgresRoomRepository{
-		cache: make(map[string]*Room),
-		conn:  conn,
+		conn: conn,
 	}
 }

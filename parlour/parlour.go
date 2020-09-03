@@ -17,7 +17,7 @@ func New(roomRepository RoomRepository, sessionStore sessions.Store) *Parlour {
 		RoomRepository: roomRepository,
 		SessionStore:   sessionStore,
 	}
-	p.roomService = &roomService{RoomRepository: roomRepository}
+	p.roomService = newRoomService(p.RoomRepository)
 	return p
 }
 
