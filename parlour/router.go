@@ -66,12 +66,13 @@ func handleErrors(c *gin.Context) {
 		return
 	}
 	var e *Error
-	if errors.As(err, &e) {
+	if errors.As(err.Err, &e) {
 		if e.internal {
 			fmt.Printf("internal error: %v", e)
 			c.Status(http.StatusInternalServerError)
 			return
 		}
+		_ = err.SetType(gin.ErrorTypePublic)
 	}
 	c.String(http.StatusBadRequest, err.Error())
 }
@@ -249,7 +250,7 @@ func (p *Parlour) setRoomMiddleware() gin.HandlerFunc {
 			return
 		}
 		if err != nil {
-			fmt.Printf("error getting room: %v", err)
+			_ = c.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}

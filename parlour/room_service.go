@@ -5,6 +5,10 @@ type Error struct {
 	internal bool
 }
 
+func (e *Error) Unwrap() error {
+	return e.error
+}
+
 type roomService struct {
 	RoomRepository
 
