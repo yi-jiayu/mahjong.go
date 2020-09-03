@@ -318,6 +318,64 @@ func removeTile(tiles []Tile, tile Tile) []Tile {
 	return tiles
 }
 
+func (r *Round) tsumo(seat int) (best Melds, points int, err error) {
+	if r.Finished {
+		err = errors.New("already won")
+		return
+	}
+	winningHands := search(r.Hands[seat].Concealed)
+	if len(winningHands) == 0 {
+		err = errors.New("missing tiles")
+		return
+	}
+	best, points = bestHand(winningHands, r, seat)
+	if points == 0 {
+		err = errors.New("no tai")
+		return
+	}
+	return
+}
+
+func (r *Round) ron(seat int, t time.Time) (best Melds, points, loser int, err error) {
+	loser = r.previousTurn()
+	if r.Finished {
+		if t.After(r.LastActionTime.Add(r.ReservedDuration)) {
+			err = errors.New("too late")
+			return
+		}
+		winnerPrecedence := (r.Result.Winner - loser + 3) % 4
+		precedence := (seat - loser + 3) % 4
+		if precedence >= winnerPrecedence {
+			err = errors.New("no precedence")
+			return
+		}
+	}
+	var winningTile Tile
+	if r.WinningTile != "" {
+		winningTile = r.WinningTile
+	} else {
+		winningTile = r.lastDiscard()
+	}
+	winningHands := search(r.Hands[seat].Concealed, winningTile)
+	if len(winningHands) == 0 {
+		err = errors.New("missing tiles")
+		return
+	}
+	best, points = bestHand(winningHands, r, seat)
+	if points == 0 {
+		err = errors.New("no tai")
+		return
+	}
+	if !r.Finished {
+		// take the winning tile from the discard pile
+		r.WinningTile = r.popLastDiscard()
+	} else {
+		// take it from the previous winner
+		r.Hands[r.Result.Winner].Finished = removeTile(r.Hands[r.Result.Winner].Finished, r.WinningTile)
+	}
+	return
+}
+
 func (r *Round) Hu(seat int, t time.Time) error {
 	if seat == r.previousTurn() {
 		return errors.New("wrong turn")
@@ -325,46 +383,17 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	if r.Turn != seat && r.Phase == PhaseDiscard {
 		return errors.New("wrong turn")
 	}
-	if r.Finished {
-		if seat == r.Result.Winner {
-			return errors.New("already won")
-		}
-		if r.Phase == PhaseDraw {
-			if t.After(r.LastActionTime.Add(r.ReservedDuration)) {
-				return errors.New("too late")
-			}
-			loser := r.previousTurn()
-			winnerPrecedence := (r.Result.Winner - loser + 3) % 4
-			precedence := (seat - loser + 3) % 4
-			if precedence >= winnerPrecedence {
-				return errors.New("no precedence")
-			}
-		}
+	var best Melds
+	var points, loser int
+	var err error
+	if r.Phase == PhaseDiscard {
+		loser = -1
+		best, points, err = r.tsumo(seat)
+	} else {
+		best, points, loser, err = r.ron(seat, t)
 	}
-	var additionalTiles []Tile
-	if r.Phase == PhaseDraw {
-		if r.Finished {
-			additionalTiles = []Tile{r.WinningTile}
-		} else {
-			additionalTiles = []Tile{r.lastDiscard()}
-		}
-	}
-	winningHands := search(r.Hands[seat].Concealed, additionalTiles...)
-	if len(winningHands) == 0 {
-		return errors.New("missing tiles")
-	}
-	best, points := bestHand(winningHands, r, seat)
-	if points == 0 {
-		return errors.New("no tai")
-	}
-	if r.Phase == PhaseDraw {
-		if !r.Finished {
-			// take the winning tile from the discard pile
-			r.WinningTile = r.popLastDiscard()
-		} else {
-			// take it from the previous winner
-			r.Hands[r.Result.Winner].Finished = removeTile(r.Hands[r.Result.Winner].Finished, r.WinningTile)
-		}
+	if err != nil {
+		return err
 	}
 	r.Hands[seat].Concealed = TileBag{}
 	r.Hands[seat].Finished = best.Tiles()
@@ -376,12 +405,6 @@ func (r *Round) Hu(seat int, t time.Time) error {
 	}
 	r.LastActionTime = t
 	r.Events = append(r.Events, newEvent(EventHu, seat, t))
-	var loser int
-	if r.Phase == PhaseDiscard {
-		loser = -1
-	} else {
-		loser = r.previousTurn()
-	}
 	for i, delta := range winnings(r.Rules, seat, loser, points) {
 		r.Scores[i] += delta
 	}

@@ -163,6 +163,9 @@ type Result struct {
 	// Winner is the integer offset of the winner for the round, or -1 if the round ended in a draw.
 	Winner int `json:"winner"`
 
+	// Loser is the integer offset of the player who threw the winning tile, or -1 if the winner won by zi mo.
+	Loser int `json:"loser"`
+
 	// Points is how much the winning hand was worth.
 	Points int `json:"points"`
 
