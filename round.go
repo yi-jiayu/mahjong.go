@@ -402,6 +402,7 @@ func (r *Round) Hu(seat int, t time.Time) error {
 		Wind:         r.Wind,
 		Winner:       seat,
 		WinningTiles: winningTiles(r.Hands[seat].Flowers, r.Hands[seat].Revealed, best),
+		Loser:        loser,
 	}
 	r.LastActionTime = t
 	r.Events = append(r.Events, newEvent(EventHu, seat, t))

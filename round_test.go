@@ -526,6 +526,7 @@ func TestRound_Hu(t *testing.T) {
 				"42西风", "42西风", "42西风",
 				"46白板", "46白板",
 			},
+			Loser: -1,
 		}, r.Result)
 		assert.Equal(t, now, r.LastActionTime)
 		assert.Equal(
@@ -572,6 +573,7 @@ func TestRound_Hu(t *testing.T) {
 				"42西风", "42西风", "42西风",
 				"46白板", "46白板",
 			},
+			Loser: 3,
 		}, r.Result)
 	})
 	t.Run("cannot hu again after huing", func(t *testing.T) {
@@ -705,6 +707,7 @@ func TestRound_Hu(t *testing.T) {
 				TileDragonsWhite, TileDragonsWhite, TileDragonsWhite,
 				TileCharacters8, TileCharacters8,
 			},
+			Loser: 3,
 		}, r.Result)
 	})
 }
