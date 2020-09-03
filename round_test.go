@@ -201,6 +201,15 @@ func TestRound_Chi(t *testing.T) {
 		err := r.Chi(0, time.Now(), TileBamboo1, TileBamboo2)
 		assert.EqualError(t, err, "cannot chi during reserved duration")
 	})
+	t.Run("cannot chi after round is finished", func(t *testing.T) {
+		r := &Round{
+			Turn:     0,
+			Phase:    PhaseDraw,
+			Finished: true,
+		}
+		err := r.Chi(0, time.Now(), "", "")
+		assert.EqualError(t, err, "round finished")
+	})
 	t.Run("successful chi", func(t *testing.T) {
 		now := time.Now()
 		r := &Round{
@@ -257,6 +266,15 @@ func TestRound_Pong(t *testing.T) {
 		}
 		err := r.Pong(0, time.Now())
 		assert.EqualError(t, err, "missing tiles")
+	})
+	t.Run("cannot pong when round finished", func(t *testing.T) {
+		r := &Round{
+			Turn:     0,
+			Phase:    PhaseDraw,
+			Finished: true,
+		}
+		err := r.Pong(0, time.Now())
+		assert.EqualError(t, err, "round finished")
 	})
 	t.Run("successful pong", func(t *testing.T) {
 		seat := 1
@@ -316,6 +334,15 @@ func TestRound_GangFromDiscard(t *testing.T) {
 		_, _, err := r.GangFromDiscard(0, time.Now())
 		assert.EqualError(t, err, "missing tiles")
 	})
+	t.Run("cannot gang from discard when round finished", func(t *testing.T) {
+		r := &Round{
+			Turn:     0,
+			Phase:    PhaseDraw,
+			Finished: true,
+		}
+		_, _, err := r.GangFromDiscard(0, time.Now())
+		assert.EqualError(t, err, "round finished")
+	})
 	t.Run("successful gang from discard", func(t *testing.T) {
 		seat := 1
 		r := &Round{
@@ -371,6 +398,15 @@ func TestRound_GangFromHand(t *testing.T) {
 		}
 		_, _, err := r.GangFromHand(0, time.Now(), TileDragonsRed)
 		assert.EqualError(t, err, "missing tiles")
+	})
+	t.Run("cannot gang from hand when round finished", func(t *testing.T) {
+		r := &Round{
+			Turn:     0,
+			Phase:    PhaseDiscard,
+			Finished: true,
+		}
+		_, _, err := r.GangFromHand(0, time.Now(), "")
+		assert.EqualError(t, err, "round finished")
 	})
 	t.Run("successful concealed gang", func(t *testing.T) {
 		seat := 0

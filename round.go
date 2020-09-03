@@ -161,6 +161,9 @@ func (r *Round) Discard(seat int, t time.Time, tile Tile) error {
 }
 
 func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
+	if r.Finished {
+		return errors.New("round finished")
+	}
 	if r.Turn != seat {
 		return errors.New("wrong turn")
 	}
@@ -200,6 +203,9 @@ func (r *Round) Chi(seat int, t time.Time, tile1, tile2 Tile) error {
 }
 
 func (r *Round) Pong(seat int, t time.Time) error {
+	if r.Finished {
+		return errors.New("round finished")
+	}
 	if seat == r.previousTurn() {
 		return errors.New("wrong turn")
 	}
@@ -227,6 +233,10 @@ func (r *Round) Pong(seat int, t time.Time) error {
 }
 
 func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flowers []Tile, err error) {
+	if r.Finished {
+		err = errors.New("round finished")
+		return
+	}
 	if seat == r.previousTurn() {
 		err = errors.New("wrong turn")
 		return
@@ -261,6 +271,10 @@ func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flower
 }
 
 func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile, flowers []Tile, err error) {
+	if r.Finished {
+		err = errors.New("round finished")
+		return
+	}
 	if seat != r.Turn {
 		err = errors.New("wrong turn")
 		return
