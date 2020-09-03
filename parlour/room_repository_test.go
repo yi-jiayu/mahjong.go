@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/yi-jiayu/mahjong.go"
 )
 
 var (
@@ -27,27 +28,34 @@ func getTx() pgx.Tx {
 	return tx
 }
 
-func TestPostgresRoomRepository_Save(t *testing.T) {
-	t.Run("saves room", func(t *testing.T) {
+func TestPostgresRoomRepository(t *testing.T) {
+	t.Run("saves and retrieves room", func(t *testing.T) {
 		tx := getTx()
 		defer tx.Rollback(context.Background())
 
 		repo := NewPostgresRoomRepository(tx)
 		room := &Room{
 			ID: "ABCD",
+			Results: []mahjong.Result{
+				{
+					Dealer:       1,
+					Wind:         1,
+					Winner:       1,
+					Loser:        -1,
+					Points:       1,
+					WinningTiles: []mahjong.Tile{mahjong.TileDragonsWhite},
+				},
+			},
+			clients: map[chan string]string{},
 		}
 		err := repo.Save(room)
 		assert.NoError(t, err)
 
-		room.Phase = PhaseInProgress
-		err = repo.Save(room)
-		assert.NoError(t, err)
-
 		got, err := repo.Get("ABCD")
 		assert.NoError(t, err)
-		assert.Equal(t, PhaseInProgress, got.Phase)
+		assert.Equal(t, room, got)
 	})
-	t.Run("sets room ID if unset", func(t *testing.T) {
+	t.Run("sets room ID on save if unset", func(t *testing.T) {
 		tx := getTx()
 		defer tx.Rollback(context.Background())
 
@@ -76,23 +84,4 @@ func TestPostgresRoomRepository_Save(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, room.ID)
 	})
-}
-
-func TestPostgresRoomRepository_Get(t *testing.T) {
-	tx := getTx()
-	defer tx.Rollback(context.Background())
-
-	repo := NewPostgresRoomRepository(tx)
-	room := NewRoom(Player{
-		ID:   "iPRk13H8j/MHaP3vhCjnAg",
-		Name: "Jiayu",
-	})
-	err := repo.Save(room)
-	if err != nil {
-		panic(err)
-	}
-
-	got, err := repo.Get(room.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, room, got)
 }

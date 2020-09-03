@@ -37,6 +37,7 @@ type Room struct {
 	Phase   Phase
 	Players []Player
 	Round   *mahjong.Round
+	Results []mahjong.Result
 
 	sync.RWMutex
 
@@ -50,6 +51,7 @@ type RoomView struct {
 	Phase   Phase             `json:"phase"`
 	Players []Player          `json:"players"`
 	Round   mahjong.RoundView `json:"round"`
+	Results []mahjong.Result  `json:"results"`
 	Inside  bool              `json:"inside"`
 }
 
@@ -81,6 +83,7 @@ func (r *Room) view(playerID string) RoomView {
 		Nonce:   r.Nonce,
 		Phase:   r.Phase,
 		Players: r.Players,
+		Results: r.Results,
 		Inside:  r.seat(playerID) != -1,
 	}
 	if r.Phase == PhaseInProgress {
@@ -226,6 +229,7 @@ func (r *Room) nextRound() error {
 		if err != nil {
 			return err
 		}
+		r.Results = append(r.Results, *r.Round.Result)
 		r.Round = next
 	}
 	r.Round.Start(rand.Int63(), time.Now())
@@ -237,6 +241,7 @@ func NewRoom(host Player) *Room {
 		Phase:   PhaseLobby,
 		Players: []Player{host},
 		clients: make(map[chan string]string),
+		Results: []mahjong.Result{},
 	}
 	return room
 }

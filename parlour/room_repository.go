@@ -85,13 +85,14 @@ func (p *PostgresRoomRepository) Save(room *Room) error {
 			if err != nil {
 				return fmt.Errorf("error inserting room: %w", err)
 			}
-			_, err = tx.Exec(ctx, `insert into rooms (id, nonce, phase, players, round)
-values ($1, $2, $3, $4, $5)`,
+			_, err = tx.Exec(ctx, `insert into rooms (id, nonce, phase, players, round, results)
+values ($1, $2, $3, $4, $5, $6)`,
 				id,
 				room.Nonce,
 				room.Phase,
 				room.Players,
 				room.Round,
+				room.Results,
 			)
 			if err != nil {
 				var pgError *pgconn.PgError
@@ -111,17 +112,19 @@ values ($1, $2, $3, $4, $5)`,
 			return nil
 		}
 	}
-	_, err := p.conn.Exec(ctx, `insert into rooms (id, nonce, phase, players, round)
-values ($1, $2, $3, $4, $5)
+	_, err := p.conn.Exec(ctx, `insert into rooms (id, nonce, phase, players, round, results)
+values ($1, $2, $3, $4, $5, $6)
 on conflict (id) do update set nonce=excluded.nonce,
                                phase=excluded.phase,
                                players=excluded.players,
-                               round=excluded.round`,
+                               round=excluded.round,
+                               results=excluded.results`,
 		room.ID,
 		room.Nonce,
 		room.Phase,
 		room.Players,
 		room.Round,
+		room.Results,
 	)
 	if err != nil {
 		return fmt.Errorf("error saving room: %w", err)
@@ -133,8 +136,8 @@ func (p *PostgresRoomRepository) Get(id string) (*Room, error) {
 	var room Room
 	err := p.conn.QueryRow(
 		context.Background(),
-		"select id, nonce, phase, players, round from rooms where id = $1", id,
-	).Scan(&room.ID, &room.Nonce, &room.Phase, &room.Players, &room.Round)
+		"select id, nonce, phase, players, round, results from rooms where id = $1", id,
+	).Scan(&room.ID, &room.Nonce, &room.Phase, &room.Players, &room.Round, &room.Results)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errNotFound
 	}
