@@ -11,6 +11,10 @@ const (
 	MinTilesLeft = 16
 )
 
+var (
+	ErrNoMoreRounds = errors.New("no more rounds")
+)
+
 // Round represents a round in a mahjong game.
 type Round struct {
 	// Scores contains the score for each player in the game.
@@ -524,7 +528,7 @@ func (r *Round) Next() (*Round, error) {
 	wind := r.Wind
 	if r.Result.Winner != dealer {
 		if dealer == 3 && wind == DirectionNorth {
-			return nil, errors.New("no more rounds")
+			return nil, ErrNoMoreRounds
 		}
 		dealer = (r.Dealer + 1) % 4
 		if dealer == 0 {
