@@ -69,7 +69,7 @@ func handleErrors(c *gin.Context) {
 	if errors.As(err.Err, &e) {
 		if e.internal {
 			fmt.Printf("internal error: %v", e)
-			c.Status(http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, "internal error")
 			return
 		}
 		_ = err.SetType(gin.ErrorTypePublic)
