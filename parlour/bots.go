@@ -24,6 +24,9 @@ func (b *Bot) Start(roomService *roomService) {
 				fmt.Printf("error unmarshalling game state: %v\n", err)
 				return
 			}
+			if state.Round == nil {
+				return
+			}
 			if state.Round.Turn != state.Round.Seat {
 				return
 			}
@@ -39,7 +42,7 @@ func (b *Bot) Start(roomService *roomService) {
 					return
 				}
 			} else if state.Round.Phase == mahjong.PhaseDiscard {
-				if state.Round.DrawsLeft <= 0 {
+				if state.Round.DrawsLeft <= 0 && !state.Round.Finished {
 					action := Action{
 						Nonce: state.Nonce,
 						Type:  ActionEndRound,

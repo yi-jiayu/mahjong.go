@@ -16,6 +16,7 @@ type Phase int
 const (
 	PhaseLobby Phase = iota
 	PhaseInProgress
+	PhaseFinished
 )
 
 var (
@@ -37,6 +38,7 @@ type Room struct {
 	Phase   Phase
 	Players []Player
 	Round   *mahjong.Round
+	Scores  [4]int
 	Results []mahjong.Result
 
 	sync.RWMutex
@@ -46,13 +48,14 @@ type Room struct {
 }
 
 type RoomView struct {
-	ID      string            `json:"id"`
-	Nonce   int               `json:"nonce"`
-	Phase   Phase             `json:"phase"`
-	Players []Player          `json:"players"`
-	Round   mahjong.RoundView `json:"round"`
-	Results []mahjong.Result  `json:"results"`
-	Inside  bool              `json:"inside"`
+	ID      string             `json:"id"`
+	Nonce   int                `json:"nonce"`
+	Phase   Phase              `json:"phase"`
+	Players []Player           `json:"players"`
+	Round   *mahjong.RoundView `json:"round,omitempty"`
+	Scores  [4]int             `json:"scores"`
+	Results []mahjong.Result   `json:"results"`
+	Inside  bool               `json:"inside"`
 }
 
 func (r *Room) WithLock(f func(r *Room)) {
@@ -87,7 +90,8 @@ func (r *Room) view(playerID string) RoomView {
 		Inside:  r.seat(playerID) != -1,
 	}
 	if r.Phase == PhaseInProgress {
-		view.Round = r.Round.View(r.seat(playerID))
+		roundView := r.Round.View(r.seat(playerID))
+		view.Round = &roundView
 	}
 	return view
 }
@@ -218,20 +222,31 @@ func (r *Room) removePlayer(playerID string) {
 }
 
 func (r *Room) nextRound() error {
-	if r.Round == nil {
+	if r.Phase == PhaseLobby {
+		if len(r.Players) < 4 {
+			return errors.New("not enough players")
+		}
 		r.Phase = PhaseInProgress
 		r.Round = &mahjong.Round{
 			Rules:            mahjong.RulesDefault,
 			ReservedDuration: 2 * time.Second,
 		}
-	} else {
-		next, err := r.Round.Next()
-		if err != nil {
-			return err
-		}
-		r.Results = append(r.Results, *r.Round.Result)
-		r.Round = next
+		r.Round.Start(rand.Int63(), time.Now())
+		return nil
 	}
+	next, err := r.Round.Next()
+	if err == mahjong.ErrNoMoreRounds {
+		r.Scores = r.Round.Scores
+		r.Results = append(r.Results, *r.Round.Result)
+		r.Phase = PhaseFinished
+		r.Round = nil
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	r.Results = append(r.Results, *r.Round.Result)
+	r.Round = next
 	r.Round.Start(rand.Int63(), time.Now())
 	return nil
 }
