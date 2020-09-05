@@ -967,6 +967,7 @@ func TestRound_End(t *testing.T) {
 			Dealer: r.Dealer,
 			Wind:   r.Wind,
 			Winner: -1,
+			Loser:  -1,
 		}, r.Result)
 		assert.Equal(t, now, r.LastActionTime)
 		assert.Equal(t, []Event{{Type: EventEnd, Seat: 0, Time: timeInMillis(now)}}, r.Events)

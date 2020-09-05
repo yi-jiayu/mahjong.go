@@ -561,6 +561,7 @@ func (r *Round) End(seat int, t time.Time) error {
 		Dealer: r.Dealer,
 		Wind:   r.Wind,
 		Winner: -1,
+		Loser:  -1,
 	}
 	r.LastActionTime = t
 	r.Events = append(r.Events, newEvent(EventEnd, seat, t))
