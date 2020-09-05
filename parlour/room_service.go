@@ -76,11 +76,7 @@ func (s *roomService) AddPlayer(room *Room, player Player) error {
 			svcErr = &Error{error: err}
 			return
 		}
-		err = s.RoomRepository.Save(r)
-		if err != nil {
-			svcErr = &Error{error: nil, internal: true}
-			return
-		}
+		svcErr = s.Save(r)
 	})
 	return svcErr
 }
@@ -89,11 +85,7 @@ func (s *roomService) RemovePlayer(room *Room, playerID string) error {
 	var svcErr error
 	room.WithLock(func(r *Room) {
 		room.removePlayer(playerID)
-		err := s.RoomRepository.Save(r)
-		if err != nil {
-			svcErr = &Error{error: nil, internal: true}
-			return
-		}
+		svcErr = s.Save(r)
 	})
 	return svcErr
 }
@@ -106,11 +98,7 @@ func (s *roomService) Dispatch(room *Room, playerID string, action Action) error
 			svcErr = &Error{error: err}
 			return
 		}
-		err = s.RoomRepository.Save(r)
-		if err != nil {
-			svcErr = &Error{error: nil, internal: true}
-			return
-		}
+		svcErr = s.Save(r)
 	})
 	return svcErr
 }
@@ -142,11 +130,7 @@ func (s *roomService) AddBot(room *Room, playerID string) error {
 		}
 		r.clients[bot.Updates] = bot.ID
 		go bot.Start(s)
-		err := s.RoomRepository.Save(r)
-		if err != nil {
-			svcErr = &Error{error: nil, internal: true}
-			return
-		}
+		svcErr = s.Save(r)
 	})
 	return svcErr
 }
