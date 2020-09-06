@@ -30,3 +30,18 @@ func TestRoom_AddPlayer(t *testing.T) {
 		}, r.Players)
 	})
 }
+
+func TestRoom_reduce(t *testing.T) {
+	t.Run("cannot perform game actions unless phase is in progress", func(t *testing.T) {
+		action := Action{
+			Type: ActionDraw,
+		}
+		player := Player{ID: "abc"}
+		r := &Room{
+			Players: []Player{player},
+			Phase:   PhaseLobby,
+		}
+		err := r.reduce(player.ID, action)
+		assert.EqualError(t, err, "invalid action")
+	})
+}

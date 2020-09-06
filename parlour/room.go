@@ -131,9 +131,10 @@ type Action struct {
 }
 
 func (r *Room) reduceRound(seat int, t time.Time, action Action) error {
+	if r.Phase != PhaseInProgress {
+		return errors.New("invalid action")
+	}
 	switch action.Type {
-	case ActionNextRound:
-		return r.nextRound()
 	case ActionDraw:
 		_, _, err := r.Round.Draw(seat, t)
 		return err
@@ -174,7 +175,12 @@ func (r *Room) reduce(playerID string, action Action) error {
 		return errInvalidNonce
 	}
 	t := time.Now()
-	err := r.reduceRound(seat, t, action)
+	var err error
+	if action.Type == ActionNextRound {
+		err = r.nextRound()
+	} else {
+		err = r.reduceRound(seat, t, action)
+	}
 	if err != nil {
 		return err
 	}
