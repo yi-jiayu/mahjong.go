@@ -1,7 +1,6 @@
 package parlour
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -12,28 +11,22 @@ import (
 type Bot struct {
 	ID      string
 	Room    *Room
-	Updates chan string
+	Updates chan RoomView
 }
 
 func (b *Bot) Start(roomService *roomService) {
-	for update := range b.Updates {
-		go func(update string) {
-			var state RoomView
-			err := json.Unmarshal([]byte(update), &state)
-			if err != nil {
-				fmt.Printf("error unmarshalling game state: %v\n", err)
+	for view := range b.Updates {
+		go func(view RoomView) {
+			if view.Round == nil {
 				return
 			}
-			if state.Round == nil {
+			if view.Round.Turn != view.Round.Seat {
 				return
 			}
-			if state.Round.Turn != state.Round.Seat {
-				return
-			}
-			if state.Round.Phase == mahjong.PhaseDraw {
-				time.Sleep(time.Duration(state.Round.ReservedDuration)*time.Millisecond + time.Second)
+			if view.Round.Phase == mahjong.PhaseDraw {
+				time.Sleep(time.Duration(view.Round.ReservedDuration)*time.Millisecond + time.Second)
 				action := Action{
-					Nonce: state.Nonce,
+					Nonce: view.Nonce,
 					Type:  ActionDraw,
 				}
 				err := roomService.Dispatch(b.Room, b.ID, action)
@@ -41,10 +34,10 @@ func (b *Bot) Start(roomService *roomService) {
 					fmt.Printf("error drawing: %v", err)
 					return
 				}
-			} else if state.Round.Phase == mahjong.PhaseDiscard {
-				if state.Round.DrawsLeft <= 0 && !state.Round.Finished {
+			} else if view.Round.Phase == mahjong.PhaseDiscard {
+				if view.Round.DrawsLeft <= 0 && !view.Round.Finished {
 					action := Action{
-						Nonce: state.Nonce,
+						Nonce: view.Nonce,
 						Type:  ActionEndRound,
 					}
 					err := roomService.Dispatch(b.Room, b.ID, action)
@@ -55,12 +48,12 @@ func (b *Bot) Start(roomService *roomService) {
 					return
 				}
 				var tileToDiscard mahjong.Tile
-				for tile := range state.Round.Hands[state.Round.Seat].Concealed {
+				for tile := range view.Round.Hands[view.Round.Seat].Concealed {
 					tileToDiscard = tile
 					break
 				}
 				action := Action{
-					Nonce: state.Nonce,
+					Nonce: view.Nonce,
 					Type:  ActionDiscard,
 					Tiles: []mahjong.Tile{tileToDiscard},
 				}
@@ -70,6 +63,6 @@ func (b *Bot) Start(roomService *roomService) {
 					return
 				}
 			}
-		}(update)
+		}(view)
 	}
 }

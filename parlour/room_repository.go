@@ -144,7 +144,7 @@ func (p *PostgresRoomRepository) Get(id string) (*Room, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting room: %w", err)
 	}
-	room.clients = make(map[chan string]string)
+	room.clients = make(map[chan RoomView]string)
 	return &room, nil
 }
 

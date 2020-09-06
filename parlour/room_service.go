@@ -45,7 +45,7 @@ func (s *roomService) Get(id string) (*Room, error) {
 			bot := Bot{
 				ID:      player.ID,
 				Room:    room,
-				Updates: make(chan string, 1),
+				Updates: make(chan RoomView, 1),
 			}
 			room.clients[bot.Updates] = bot.ID
 			go bot.Start(s)
@@ -126,7 +126,7 @@ func (s *roomService) AddBot(room *Room, playerID string) error {
 		bot := Bot{
 			ID:      name,
 			Room:    r,
-			Updates: make(chan string),
+			Updates: make(chan RoomView),
 		}
 		r.clients[bot.Updates] = bot.ID
 		go bot.Start(s)

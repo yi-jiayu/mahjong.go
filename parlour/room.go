@@ -1,8 +1,6 @@
 package parlour
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"math/rand"
 	"sync"
@@ -44,7 +42,7 @@ type Room struct {
 	sync.RWMutex
 
 	// clients is a map of subscription channels to player IDs.
-	clients map[chan string]string
+	clients map[chan RoomView]string
 }
 
 type RoomView struct {
@@ -188,16 +186,15 @@ func (r *Room) reduce(playerID string, action Action) error {
 // AddClient subscribes a new client to the room. The current room state will
 // be immediately sent through ch, so either ensure ch is buffered or read from
 // ch concurrently to prevent deadlock.
-func (r *Room) AddClient(playerID string, ch chan string) {
+func (r *Room) AddClient(playerID string, ch chan RoomView) {
 	r.Lock()
 	defer r.Unlock()
 	r.clients[ch] = playerID
-	var b bytes.Buffer
-	json.NewEncoder(&b).Encode(r.view(playerID))
-	ch <- b.String()
+	view := r.view(playerID)
+	ch <- view
 }
 
-func (r *Room) RemoveClient(ch chan string) {
+func (r *Room) RemoveClient(ch chan RoomView) {
 	r.Lock()
 	delete(r.clients, ch)
 	r.Unlock()
@@ -205,9 +202,8 @@ func (r *Room) RemoveClient(ch chan string) {
 
 func (r *Room) broadcast() {
 	for ch, playerID := range r.clients {
-		var b bytes.Buffer
-		json.NewEncoder(&b).Encode(r.view(playerID))
-		ch <- b.String()
+		view := r.view(playerID)
+		ch <- view
 	}
 }
 
@@ -255,7 +251,7 @@ func NewRoom(host Player) *Room {
 	room := &Room{
 		Phase:   PhaseLobby,
 		Players: []Player{host},
-		clients: make(map[chan string]string),
+		clients: make(map[chan RoomView]string),
 		Results: []mahjong.Result{},
 	}
 	return room

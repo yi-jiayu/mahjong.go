@@ -46,7 +46,7 @@ func TestPostgresRoomRepository(t *testing.T) {
 					WinningTiles: []mahjong.Tile{mahjong.TileDragonsWhite},
 				},
 			},
-			clients: map[chan string]string{},
+			clients: map[chan RoomView]string{},
 		}
 		err := repo.Save(room)
 		assert.NoError(t, err)

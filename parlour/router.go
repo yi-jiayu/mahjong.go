@@ -148,7 +148,7 @@ func (p *Parlour) subscribeRoomHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
 		room := c.MustGet(KeyRoom).(*Room)
-		ch := make(chan string, 1)
+		ch := make(chan RoomView, 1)
 		room.AddClient(playerID, ch)
 		metricRoomSubscriptions.Add(1)
 
@@ -160,8 +160,8 @@ func (p *Parlour) subscribeRoomHandler() gin.HandlerFunc {
 		}()
 
 		c.Stream(func(w io.Writer) bool {
-			if update, ok := <-ch; ok {
-				c.SSEvent("", update)
+			if view, ok := <-ch; ok {
+				c.SSEvent("", view)
 				return true
 			}
 			return false
