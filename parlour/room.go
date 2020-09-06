@@ -136,8 +136,7 @@ func (r *Room) reduceRound(seat int, t time.Time, action Action) error {
 	}
 	switch action.Type {
 	case ActionDraw:
-		_, _, err := r.Round.Draw(seat, t)
-		return err
+		return r.Round.Draw(seat, t)
 	case ActionDiscard:
 		if len(action.Tiles) < 1 {
 			return errors.New("tiles is required")
@@ -152,11 +151,9 @@ func (r *Room) reduceRound(seat int, t time.Time, action Action) error {
 		return r.Round.Pong(seat, t)
 	case ActionGang:
 		if len(action.Tiles) > 0 {
-			_, _, err := r.Round.GangFromHand(seat, t, action.Tiles[0])
-			return err
+			return r.Round.GangFromHand(seat, t, action.Tiles[0])
 		}
-		_, _, err := r.Round.GangFromDiscard(seat, t)
-		return err
+		return r.Round.GangFromDiscard(seat, t)
 	case ActionHu:
 		return r.Round.Hu(seat, t)
 	case ActionEndRound:

@@ -11,12 +11,12 @@ import (
 func TestRound_Draw(t *testing.T) {
 	t.Run("cannot draw on wrong turn", func(t *testing.T) {
 		r := &Round{Turn: 0}
-		_, _, err := r.Draw(1, time.Now())
+		err := r.Draw(1, time.Now())
 		assert.EqualError(t, err, "wrong turn")
 	})
 	t.Run("can only draw during draw phase", func(t *testing.T) {
 		r := &Round{Turn: 0, Phase: PhaseDiscard}
-		_, _, err := r.Draw(0, time.Now())
+		err := r.Draw(0, time.Now())
 		assert.EqualError(t, err, "wrong phase")
 	})
 	t.Run("cannot draw during reserved duration", func(t *testing.T) {
@@ -28,7 +28,7 @@ func TestRound_Draw(t *testing.T) {
 			LastActionTime:   oneSecondAgo,
 			ReservedDuration: 2 * time.Second,
 		}
-		_, _, err := r.Draw(0, time.Now())
+		err := r.Draw(0, time.Now())
 		assert.EqualError(t, err, "cannot draw during reserved duration")
 	})
 	t.Run("successful draw", func(t *testing.T) {
@@ -40,10 +40,8 @@ func TestRound_Draw(t *testing.T) {
 			Hands: [4]Hand{{Concealed: NewTileBag([]Tile{TileWindsWest})}},
 		}
 		now := time.Now()
-		drawn, flowers, err := r.Draw(seat, now)
+		err := r.Draw(seat, now)
 		assert.NoError(t, err)
-		assert.Equal(t, TileBamboo1, drawn)
-		assert.Empty(t, flowers)
 		assert.Equal(t, []Tile{TileDots5}, r.Wall)
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileBamboo1}), r.Hands[seat].Concealed)
 		assert.Equal(t, seat, r.Turn)
@@ -64,19 +62,18 @@ func TestRound_Draw(t *testing.T) {
 			Hands: [4]Hand{{Concealed: NewTileBag([]Tile{TileWindsWest})}},
 		}
 		now := time.Now()
-		drawn, flowers, err := r.Draw(seat, now)
+		err := r.Draw(seat, now)
 		assert.NoError(t, err)
-		assert.Equal(t, TileDots5, drawn)
-		assert.Equal(t, []Tile{TileGentlemen1, TileGentlemen2}, flowers)
+		assert.Equal(t, []Tile{TileGentlemen1, TileGentlemen2}, r.Hands[seat].Flowers)
 		assert.Equal(t, []Tile{TileBamboo1}, r.Wall)
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileDots5}), r.Hands[seat].Concealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{{
+		assert.Contains(t, r.Events, Event{
 			Type: EventDraw,
 			Seat: seat,
 			Time: timeInMillis(now),
-		}}, r.Events)
+		})
 	})
 }
 
@@ -308,12 +305,12 @@ func TestRound_Pong(t *testing.T) {
 func TestRound_GangFromDiscard(t *testing.T) {
 	t.Run("cannot gang from discard immediately after own turn", func(t *testing.T) {
 		r := &Round{Turn: 1}
-		_, _, err := r.GangFromDiscard(0, time.Now())
+		err := r.GangFromDiscard(0, time.Now())
 		assert.EqualError(t, err, "wrong turn")
 	})
 	t.Run("can only gang from discard during draw phase", func(t *testing.T) {
 		r := &Round{Turn: 0, Phase: PhaseDiscard}
-		_, _, err := r.GangFromDiscard(0, time.Now())
+		err := r.GangFromDiscard(0, time.Now())
 		assert.EqualError(t, err, "wrong phase")
 	})
 	t.Run("cannot gang from discard when no discards", func(t *testing.T) {
@@ -321,7 +318,7 @@ func TestRound_GangFromDiscard(t *testing.T) {
 			Turn:  0,
 			Phase: PhaseDraw,
 		}
-		_, _, err := r.GangFromDiscard(0, time.Now())
+		err := r.GangFromDiscard(0, time.Now())
 		assert.EqualError(t, err, "no discards")
 	})
 	t.Run("cannot gang from discard when not enough tiles", func(t *testing.T) {
@@ -331,7 +328,7 @@ func TestRound_GangFromDiscard(t *testing.T) {
 			Discards: []Tile{TileDragonsRed},
 			Hands:    [4]Hand{{Concealed: TileBag{TileDragonsRed: 2}}},
 		}
-		_, _, err := r.GangFromDiscard(0, time.Now())
+		err := r.GangFromDiscard(0, time.Now())
 		assert.EqualError(t, err, "missing tiles")
 	})
 	t.Run("cannot gang from discard when round finished", func(t *testing.T) {
@@ -340,7 +337,7 @@ func TestRound_GangFromDiscard(t *testing.T) {
 			Phase:    PhaseDraw,
 			Finished: true,
 		}
-		_, _, err := r.GangFromDiscard(0, time.Now())
+		err := r.GangFromDiscard(0, time.Now())
 		assert.EqualError(t, err, "round finished")
 	})
 	t.Run("successful gang from discard", func(t *testing.T) {
@@ -356,10 +353,8 @@ func TestRound_GangFromDiscard(t *testing.T) {
 			}},
 		}
 		now := time.Now()
-		replacement, flowers, err := r.GangFromDiscard(seat, now)
+		err := r.GangFromDiscard(seat, now)
 		assert.NoError(t, err)
-		assert.Equal(t, TileCharacters6, replacement)
-		assert.Equal(t, []Tile{TileGentlemen1}, flowers)
 		assert.Equal(t, []Tile{TileDots1}, r.Discards)
 		assert.Equal(t, []Tile{TileCat, TileGentlemen1}, r.Hands[seat].Flowers)
 		assert.Equal(t, NewTileBag([]Tile{TileWindsWest, TileCharacters6}), r.Hands[seat].Concealed)
@@ -369,12 +364,12 @@ func TestRound_GangFromDiscard(t *testing.T) {
 		}}, r.Hands[seat].Revealed)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{{
+		assert.Contains(t, r.Events, Event{
 			Type:  EventGang,
 			Seat:  seat,
 			Time:  timeInMillis(now),
 			Tiles: []Tile{TileDragonsRed},
-		}}, r.Events)
+		})
 		assert.Equal(t, now, r.LastActionTime)
 	})
 }
@@ -382,12 +377,12 @@ func TestRound_GangFromDiscard(t *testing.T) {
 func TestRound_GangFromHand(t *testing.T) {
 	t.Run("cannot gang from hand on wrong turn", func(t *testing.T) {
 		r := &Round{Turn: 1}
-		_, _, err := r.GangFromHand(0, time.Now(), "")
+		err := r.GangFromHand(0, time.Now(), "")
 		assert.EqualError(t, err, "wrong turn")
 	})
 	t.Run("can only gang from hand during discard phase", func(t *testing.T) {
 		r := &Round{Turn: 0, Phase: PhaseDraw}
-		_, _, err := r.GangFromHand(0, time.Now(), "")
+		err := r.GangFromHand(0, time.Now(), "")
 		assert.EqualError(t, err, "wrong phase")
 	})
 	t.Run("cannot gang from hand when not enough tiles and no corresponding pong", func(t *testing.T) {
@@ -396,7 +391,7 @@ func TestRound_GangFromHand(t *testing.T) {
 			Phase: PhaseDiscard,
 			Hands: [4]Hand{{}},
 		}
-		_, _, err := r.GangFromHand(0, time.Now(), TileDragonsRed)
+		err := r.GangFromHand(0, time.Now(), TileDragonsRed)
 		assert.EqualError(t, err, "missing tiles")
 	})
 	t.Run("cannot gang from hand when round finished", func(t *testing.T) {
@@ -405,7 +400,7 @@ func TestRound_GangFromHand(t *testing.T) {
 			Phase:    PhaseDiscard,
 			Finished: true,
 		}
-		_, _, err := r.GangFromHand(0, time.Now(), "")
+		err := r.GangFromHand(0, time.Now(), "")
 		assert.EqualError(t, err, "round finished")
 	})
 	t.Run("successful concealed gang", func(t *testing.T) {
@@ -420,10 +415,8 @@ func TestRound_GangFromHand(t *testing.T) {
 			}},
 		}
 		now := time.Now()
-		replacement, flowers, err := r.GangFromHand(seat, now, TileDragonsRed)
+		err := r.GangFromHand(seat, now, TileDragonsRed)
 		assert.NoError(t, err)
-		assert.Equal(t, TileDots4, replacement)
-		assert.Equal(t, []Tile{TileCat}, flowers)
 		assert.Equal(t, Melds{{
 			Type:  MeldGang,
 			Tiles: []Tile{TileDragonsRed},
@@ -432,12 +425,12 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.Equal(t, []Tile{TileCharacters1}, r.Wall)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{{
+		assert.Contains(t, r.Events, Event{
 			Type:  EventGang,
 			Seat:  seat,
 			Time:  timeInMillis(now),
 			Tiles: []Tile{TileDragonsRed},
-		}}, r.Events)
+		})
 		assert.Equal(t, now, r.LastActionTime)
 	})
 	t.Run("successful promote pong to gang", func(t *testing.T) {
@@ -456,10 +449,8 @@ func TestRound_GangFromHand(t *testing.T) {
 			}},
 		}
 		now := time.Now()
-		replacement, flowers, err := r.GangFromHand(seat, now, TileDragonsRed)
+		err := r.GangFromHand(seat, now, TileDragonsRed)
 		assert.NoError(t, err)
-		assert.Equal(t, TileDots4, replacement)
-		assert.Equal(t, []Tile{TileCat}, flowers)
 		assert.Equal(t, Melds{{
 			Type:  MeldGang,
 			Tiles: []Tile{TileDragonsRed},
@@ -468,12 +459,12 @@ func TestRound_GangFromHand(t *testing.T) {
 		assert.Equal(t, []Tile{TileCharacters1}, r.Wall)
 		assert.Equal(t, seat, r.Turn)
 		assert.Equal(t, PhaseDiscard, r.Phase)
-		assert.Equal(t, []Event{{
+		assert.Contains(t, r.Events, Event{
 			Type:  EventGang,
 			Seat:  seat,
 			Time:  timeInMillis(now),
 			Tiles: []Tile{TileDragonsRed},
-		}}, r.Events)
+		})
 		assert.Equal(t, now, r.LastActionTime)
 	})
 }
@@ -1043,5 +1034,56 @@ func TestRound_Next(t *testing.T) {
 		}
 		_, err := r.Next()
 		assert.EqualError(t, err, "no more rounds")
+	})
+}
+
+func TestRound_addFlowers(t *testing.T) {
+	t.Run("adds flower to hand", func(t *testing.T) {
+		r := &Round{
+			Hands: [4]Hand{{Flowers: []Tile{TileGentlemen1}}},
+		}
+		now := time.Now()
+		r.addFlower(0, now, TileCat)
+		assert.Equal(t, []Tile{TileGentlemen1, TileCat}, r.Hands[0].Flowers)
+		assert.Equal(t, []Event{{
+			Type:  EventFlower,
+			Seat:  0,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileCat},
+		}}, r.Events)
+	})
+	t.Run("triggers bitten event", func(t *testing.T) {
+		r := &Round{
+			Hands: [4]Hand{{Flowers: []Tile{TileRat}}},
+		}
+		now := time.Now()
+		r.addFlower(0, now, TileCat)
+		assert.Contains(t, r.Events, Event{
+			Type:  EventBitten,
+			Seat:  0,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileCat, TileRat},
+		})
+		assert.Equal(t, [4]int{6, -2, -2, -2}, r.Scores)
+	})
+	t.Run("cumulative bitten events", func(t *testing.T) {
+		r := &Round{
+			Hands: [4]Hand{{Flowers: []Tile{TileCat, TileRat, TileRooster}}},
+		}
+		now := time.Now()
+		r.addFlower(0, now, TileCentipede)
+		assert.Contains(t, r.Events, Event{
+			Type:  EventBitten,
+			Seat:  0,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileRooster, TileCentipede},
+		})
+		assert.Contains(t, r.Events, Event{
+			Type:  EventBitten,
+			Seat:  0,
+			Time:  timeInMillis(now),
+			Tiles: []Tile{TileCat, TileRat, TileRooster, TileCentipede},
+		})
+		assert.Equal(t, [4]int{18, -6, -6, -6}, r.Scores)
 	})
 }

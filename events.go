@@ -21,6 +21,8 @@ const (
 	EventGang    = "gang"
 	EventHu      = "hu"
 	EventEnd     = "end"
+	EventFlower  = "flower"
+	EventBitten  = "bitten"
 )
 
 // Event represents a player's view of an event.

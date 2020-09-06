@@ -1,14 +1,15 @@
 package parlour
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
+	mathRand "math/rand"
 	"net/http"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -31,7 +32,7 @@ var sessionOptions = sessions.Options{
 // newPlayerID returns opaque string containing n bytes of entropy.
 func newPlayerID(n int) string {
 	data := make([]byte, n)
-	_, err := rand.Read(data)
+	_, err := mathRand.Read(data)
 	if err != nil {
 		panic(err)
 	}
@@ -229,6 +230,21 @@ func prependWallHandler() gin.HandlerFunc {
 	}
 }
 
+func reshuffleHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		room := c.MustGet(KeyRoom).(*Room)
+		if room.Round == nil {
+			c.String(http.StatusBadRequest, "round not started")
+			return
+		}
+		room.Round = &mahjong.Round{
+			Rules: mahjong.RulesDefault,
+		}
+		room.Round.Start(mathRand.Int63(), time.Now())
+		room.broadcast()
+	}
+}
+
 func (p *Parlour) addBotHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerID := c.GetString(KeyPlayerID)
@@ -275,6 +291,7 @@ func (p Parlour) configure(r *gin.Engine) {
 		if gin.IsDebugging() {
 			room.PUT("/round/hands/:seat/concealed", setConcealedHandler())
 			room.POST("/round/wall", prependWallHandler())
+			room.POST("/round/reshuffle", reshuffleHandler())
 		}
 	}
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))

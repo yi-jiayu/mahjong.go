@@ -76,6 +76,32 @@ var (
 	}
 )
 
+type FlowerGroup struct {
+	Flowers []Tile
+	Payout  int
+}
+
+var (
+	bites = map[Tile][]FlowerGroup{
+		TileCat: {
+			{Flowers: []Tile{TileCat, TileRat}, Payout: 2},
+			{Flowers: []Tile{TileCat, TileRat, TileRooster, TileCentipede}, Payout: 4},
+		},
+		TileRat: {
+			{Flowers: []Tile{TileCat, TileRat}, Payout: 2},
+			{Flowers: []Tile{TileCat, TileRat, TileRooster, TileCentipede}, Payout: 4},
+		},
+		TileRooster: {
+			{Flowers: []Tile{TileRooster, TileCentipede}, Payout: 2},
+			{Flowers: []Tile{TileCat, TileRat, TileRooster, TileCentipede}, Payout: 4},
+		},
+		TileCentipede: {
+			{Flowers: []Tile{TileRooster, TileCentipede}, Payout: 2},
+			{Flowers: []Tile{TileCat, TileRat, TileRooster, TileCentipede}, Payout: 4},
+		},
+	}
+)
+
 func (t Tile) Suit() Suit {
 	switch {
 	case t == TileCat || t == TileRat || t == TileRooster || t == TileCentipede || t == TileGentlemen1 || t == TileGentlemen2 || t == TileGentlemen3 || t == TileGentlemen4 || t == TileSeasons1 || t == TileSeasons2 || t == TileSeasons3 || t == TileSeasons4:

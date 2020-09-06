@@ -96,50 +96,44 @@ func (r *Round) previousTurn() int {
 	return (r.Turn + 3) % 4
 }
 
-func (r *Round) replaceTile() (Tile, []Tile) {
-	flowers := make([]Tile, 0)
+func (r *Round) replaceTile(seat int, t time.Time) {
 	drawn := r.drawBack()
 	for isFlower(drawn) {
-		flowers = append(flowers, drawn)
+		r.addFlower(seat, t, drawn)
 		drawn = r.drawBack()
 	}
-	return drawn, flowers
+	r.Hands[seat].Concealed.Add(drawn)
 }
 
 func (r *Round) seatWind(seat int) Direction {
 	return Direction((seat - r.Dealer + 4) % 4)
 }
 
-func (r *Round) Draw(seat int, t time.Time) (drawn Tile, flowers []Tile, err error) {
+func (r *Round) Draw(seat int, t time.Time) error {
 	if r.Turn != seat {
-		err = errors.New("wrong turn")
-		return
+		return errors.New("wrong turn")
 	}
 	if r.Phase != PhaseDraw {
-		err = errors.New("wrong phase")
-		return
+		return errors.New("wrong phase")
 	}
 	if t.Before(r.LastActionTime.Add(r.ReservedDuration)) {
-		err = errors.New("cannot draw during reserved duration")
-		return
+		return errors.New("cannot draw during reserved duration")
 	}
-	drawn = r.drawFront()
-	flowers = make([]Tile, 0)
-	for isFlower(drawn) {
-		flowers = append(flowers, drawn)
-		drawn = r.drawBack()
-	}
-	hand := &r.Hands[seat]
-	hand.Concealed.Add(drawn)
-	hand.Flowers = append(hand.Flowers, flowers...)
-	r.Phase = PhaseDiscard
 	r.Events = append(r.Events, Event{
 		Type: EventDraw,
 		Seat: seat,
 		Time: timeInMillis(t),
 	})
+	drawn := r.drawFront()
+	for isFlower(drawn) {
+		r.addFlower(seat, t, drawn)
+		drawn = r.drawBack()
+	}
+	hand := &r.Hands[seat]
+	hand.Concealed.Add(drawn)
+	r.Phase = PhaseDiscard
 	r.LastActionTime = t
-	return
+	return nil
 }
 
 func (r *Round) Discard(seat int, t time.Time, tile Tile) error {
@@ -236,27 +230,22 @@ func (r *Round) Pong(seat int, t time.Time) error {
 	return nil
 }
 
-func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flowers []Tile, err error) {
+func (r *Round) GangFromDiscard(seat int, t time.Time) error {
 	if r.Finished {
-		err = errors.New("round finished")
-		return
+		return errors.New("round finished")
 	}
 	if seat == r.previousTurn() {
-		err = errors.New("wrong turn")
-		return
+		return errors.New("wrong turn")
 	}
 	if r.Phase != PhaseDraw {
-		err = errors.New("wrong phase")
-		return
+		return errors.New("wrong phase")
 	}
 	if len(r.Discards) == 0 {
-		err = errors.New("no discards")
-		return
+		return errors.New("no discards")
 	}
 	hand := &r.Hands[seat]
 	if hand.Concealed.Count(r.lastDiscard()) < 3 {
-		err = errors.New("missing tiles")
-		return
+		return errors.New("missing tiles")
 	}
 	tile := r.popLastDiscard()
 	hand.Concealed.RemoveN(tile, 3)
@@ -264,28 +253,23 @@ func (r *Round) GangFromDiscard(seat int, t time.Time) (replacement Tile, flower
 		Type:  MeldGang,
 		Tiles: []Tile{tile},
 	})
-	replacement, flowers = r.replaceTile()
-	hand.Flowers = append(hand.Flowers, flowers...)
-	hand.Concealed.Add(replacement)
+	r.replaceTile(seat, t)
 	r.Events = append(r.Events, newEvent(EventGang, seat, t, tile))
 	r.Turn = seat
 	r.Phase = PhaseDiscard
 	r.LastActionTime = t
-	return
+	return nil
 }
 
-func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile, flowers []Tile, err error) {
+func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) error {
 	if r.Finished {
-		err = errors.New("round finished")
-		return
+		return errors.New("round finished")
 	}
 	if seat != r.Turn {
-		err = errors.New("wrong turn")
-		return
+		return errors.New("wrong turn")
 	}
 	if r.Phase != PhaseDiscard {
-		err = errors.New("wrong phase")
-		return
+		return errors.New("wrong phase")
 	}
 	hand := &r.Hands[seat]
 	if hand.Concealed.Count(tile) > 3 {
@@ -294,27 +278,22 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 			Type:  MeldGang,
 			Tiles: []Tile{tile},
 		})
-		replacement, flowers = r.replaceTile()
-		hand.Flowers = append(hand.Flowers, flowers...)
-		hand.Concealed.Add(replacement)
+		r.replaceTile(seat, t)
 		r.Events = append(r.Events, newEvent(EventGang, seat, t, tile))
 		r.LastActionTime = t
-		return
+		return nil
 	}
 	for i, meld := range hand.Revealed {
 		if meld.Type == MeldPong && meld.Tiles[0] == tile && hand.Concealed.Count(tile) > 0 {
 			hand.Concealed.Remove(tile)
 			hand.Revealed[i].Type = MeldGang
-			replacement, flowers = r.replaceTile()
-			hand.Flowers = append(hand.Flowers, flowers...)
-			hand.Concealed.Add(replacement)
+			r.replaceTile(seat, t)
 			r.Events = append(r.Events, newEvent(EventGang, seat, t, tile))
 			r.LastActionTime = t
-			return
+			return nil
 		}
 	}
-	err = errors.New("missing tiles")
-	return
+	return errors.New("missing tiles")
 }
 
 func bestHand(winningHands []Melds, round *Round, seat int) (Melds, int) {
@@ -507,6 +486,52 @@ func (r *Round) distributeTiles() {
 		r.Hands[seat].Concealed.Add(replacements...)
 	}
 	return
+}
+
+func contains(tiles []Tile, tile Tile) bool {
+	for _, t := range tiles {
+		if t == tile {
+			return true
+		}
+	}
+	return false
+}
+
+func containsAll(haystack []Tile, needles []Tile) bool {
+	for _, needle := range needles {
+		if !contains(haystack, needle) {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Round) addFlower(seat int, t time.Time, flower Tile) {
+	r.Events = append(r.Events, Event{
+		Type:  EventFlower,
+		Seat:  seat,
+		Time:  timeInMillis(t),
+		Tiles: []Tile{flower},
+	})
+	r.Hands[seat].Flowers = append(r.Hands[seat].Flowers, flower)
+	if groups, ok := bites[flower]; ok {
+		for _, group := range groups {
+			if containsAll(r.Hands[seat].Flowers, group.Flowers) {
+				r.Events = append(r.Events, Event{
+					Type:  EventBitten,
+					Seat:  seat,
+					Time:  timeInMillis(t),
+					Tiles: group.Flowers,
+				})
+				for i := range r.Scores {
+					if i != seat {
+						r.Scores[i] -= group.Payout
+					}
+				}
+				r.Scores[seat] += 3 * group.Payout
+			}
+		}
+	}
 }
 
 func (r *Round) Start(seed int64, t time.Time) {
