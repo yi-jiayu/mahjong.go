@@ -46,6 +46,7 @@ func (s *roomService) Get(id string) (*Room, error) {
 				ID:      player.ID,
 				Room:    room,
 				Updates: make(chan RoomView, 1),
+				AI:      discardRandomTileAI{},
 			}
 			room.clients[bot.Updates] = bot.ID
 			go bot.Start(s)
@@ -127,6 +128,7 @@ func (s *roomService) AddBot(room *Room, playerID string) error {
 			ID:      name,
 			Room:    r,
 			Updates: make(chan RoomView),
+			AI:      discardRandomTileAI{},
 		}
 		r.clients[bot.Updates] = bot.ID
 		go bot.Start(s)
