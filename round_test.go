@@ -510,7 +510,7 @@ func TestRound_Hu(t *testing.T) {
 					Concealed: NewTileBag([]Tile{
 						TileBamboo6, TileBamboo7, TileBamboo8,
 						TileWindsWest, TileWindsWest, TileWindsWest,
-						TileCharacters8, TileCharacters8, TileCharacters8,
+						TileBamboo8, TileBamboo8, TileBamboo8,
 						TileDragonsWhite, TileDragonsWhite,
 					}),
 				},

@@ -318,7 +318,8 @@ func (r *Round) GangFromHand(seat int, t time.Time, tile Tile) (replacement Tile
 }
 
 func bestHand(winningHands []Melds, round *Round, seat int) (Melds, int) {
-	return winningHands[0], score(round, seat, winningHands[0])
+	melds := append(round.Hands[seat].Revealed, winningHands[0]...)
+	return winningHands[0], score(round, seat, melds)
 }
 
 func winningTiles(flowers []Tile, melds Melds, rest Melds) []Tile {
