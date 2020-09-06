@@ -2,6 +2,7 @@ package parlour
 
 import (
 	"strings"
+	"sync"
 )
 
 type Error struct {
@@ -14,21 +15,15 @@ func (e *Error) Unwrap() error {
 }
 
 type roomService struct {
-	RoomRepository
+	RoomRepository RoomRepository
 
 	cache map[string]*Room
-}
-
-func (s *roomService) Save(room *Room) error {
-	err := s.RoomRepository.Save(room)
-	if err != nil {
-		return &Error{error: err, internal: true}
-	}
-	s.cache[room.ID] = room
-	return nil
+	sync.Mutex
 }
 
 func (s *roomService) Get(id string) (*Room, error) {
+	s.Lock()
+	defer s.Unlock()
 	id = strings.ToUpper(id)
 	if room, ok := s.cache[id]; ok {
 		return room, nil
@@ -58,6 +53,8 @@ func (s *roomService) Get(id string) (*Room, error) {
 }
 
 func (s *roomService) Create(host Player) (*Room, error) {
+	s.Lock()
+	defer s.Unlock()
 	room := NewRoom(host)
 	err := s.RoomRepository.Save(room)
 	if err != nil {
@@ -66,6 +63,7 @@ func (s *roomService) Create(host Player) (*Room, error) {
 			internal: true,
 		}
 	}
+	s.cache[room.ID] = room
 	return room, nil
 }
 
@@ -77,7 +75,7 @@ func (s *roomService) AddPlayer(room *Room, player Player) error {
 			svcErr = &Error{error: err}
 			return
 		}
-		svcErr = s.Save(r)
+		svcErr = s.RoomRepository.Save(r)
 	})
 	return svcErr
 }
@@ -86,7 +84,7 @@ func (s *roomService) RemovePlayer(room *Room, playerID string) error {
 	var svcErr error
 	room.WithLock(func(r *Room) {
 		room.removePlayer(playerID)
-		svcErr = s.Save(r)
+		svcErr = s.RoomRepository.Save(r)
 	})
 	return svcErr
 }
@@ -99,7 +97,7 @@ func (s *roomService) Dispatch(room *Room, playerID string, action Action) error
 			svcErr = &Error{error: err}
 			return
 		}
-		svcErr = s.Save(r)
+		svcErr = s.RoomRepository.Save(r)
 	})
 	return svcErr
 }
@@ -132,7 +130,7 @@ func (s *roomService) AddBot(room *Room, playerID string) error {
 		}
 		r.clients[bot.Updates] = bot.ID
 		go bot.Start(s)
-		svcErr = s.Save(r)
+		svcErr = s.RoomRepository.Save(r)
 	})
 	return svcErr
 }
