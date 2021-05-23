@@ -177,8 +177,8 @@ func score(round *Round, seat int, melds Melds) int {
 		if len(round.Hands[seat].Flowers) == 0 {
 			return score + 4
 		}
-		// chou ping hu
-		return score + 1
+		// chou ping hu is worth 1 point
+		score += 1
 	}
 	// pong pong hu
 	if meldTypes[MeldPong]+meldTypes[MeldGang] == 4 {

@@ -222,6 +222,23 @@ func Test_score(t *testing.T) {
 		}
 		assert.Equal(t, 2, score(round, 0, melds))
 	})
+	t.Run("chou ping hu with flowers", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands: [4]Hand{{
+				Flowers: []Tile{TileGentlemen1},
+			}},
+		}
+		melds := []Meld{
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo3, TileBamboo4, TileBamboo5}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldEyes, Tiles: []Tile{TileDots1, TileDots1}},
+		}
+		assert.Equal(t, 2, score(round, 0, melds))
+	})
 }
 
 func Test_winnings(t *testing.T) {
