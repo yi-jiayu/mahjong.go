@@ -196,7 +196,7 @@ func Test_score(t *testing.T) {
 		round := &Round{
 			Dealer: 0,
 			Turn:   2,
-			Hands:  [4]Hand{{Flowers: []Tile{TileCentipede}}},
+			Hands:  [4]Hand{{Flowers: []Tile{TileGentlemen2}}},
 		}
 		melds := []Meld{
 			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
