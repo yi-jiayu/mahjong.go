@@ -129,6 +129,32 @@ func isFlowerForSeat(flower Tile, seat int) bool {
 	return false
 }
 
+func isFlowerSet(tiles map[Tile]int) bool {
+	// Check for flower set
+	flowerCount := 0
+	for _, s := range flowerTiles {
+		_, ok := tiles[s]
+		// println(s, ok)
+		if ok {
+			flowerCount++
+		}
+	}
+	// println(flowerCount)
+	return flowerCount == 4
+}
+
+func isSeasonSet(tiles map[Tile]int) bool {
+	// Check for Season set
+	seasonCount := 0
+	for _, s := range seasonTiles {
+		_, ok := tiles[s]
+		if ok {
+			seasonCount++
+		}
+	}
+	return seasonCount == 4
+}
+
 func isMatchingWind(wind Tile, seat Direction) bool {
 	switch {
 	case wind == TileWindsEast && seat == DirectionEast:
@@ -158,14 +184,59 @@ func isHalfFlush(suits map[Suit]int) bool {
 	return cardinality == 1
 }
 
+func isThreeGreatScholars(tiles map[Tile]int) bool {
+	for _, s := range dragonTiles {
+		count, ok := tiles[s]
+		if !ok && count < 3 {
+			return false
+		}
+	}
+	return true
+}
+
+func isThirteenWonders(tiles map[Tile]int) bool {
+	totalCount := 0
+	for _, s := range wonderTiles {
+		count, ok := tiles[s]
+		if !ok {
+			return false
+		} else {
+			totalCount += count
+		}
+	}
+	return totalCount == 14
+}
+
+func isFourGreatBlessings(tiles map[Tile]int) bool {
+	for _, s := range windTiles {
+		count, ok := tiles[s]
+		if !ok && count < 3 {
+			return false
+		}
+	}
+	return true
+}
+
 func score(round *Round, seat int, melds Melds) int {
 	score := 0
+	gameLimit := 10 // hard coded game limit
 	meldTypes := make(map[MeldType]int)
 	suits := make(map[Suit]int)
+	tiles := make(map[Tile]int)
 	for _, meld := range melds {
 		meldTypes[meld.Type]++
 		suits[meld.Tiles[0].Suit()]++
+		for _, tile := range meld.Tiles {
+			tiles[tile]++
+		}
 	}
+	flowers := make(map[Tile]int)
+	for _, flower := range round.Hands[seat].Flowers {
+		flowers[flower]++
+	}
+	// fmt.Printf("\n melds : %v \n", melds)
+	// fmt.Printf("\ntiles : %v \n", tiles)
+	// fmt.Printf("\n melds[0] : %v \n", round.Hands[seat].Flowers)
 	if isFullFlush(suits) {
 		score += 4
 	} else if isHalfFlush(suits) {
@@ -190,6 +261,25 @@ func score(round *Round, seat int, melds Melds) int {
 			score++
 		}
 	}
+	// Add Other Flower Conditions
+	if isFlowerSet(flowers) && isSeasonSet(flowers) {
+		return gameLimit
+	} else if isFlowerSet(flowers) || isSeasonSet(flowers) {
+		score++
+	}
+	// Three Great Scholars
+	if isThreeGreatScholars(tiles) {
+		score += 2 // since the code counts 1 each again later
+	}
+	// Four Great Blessings
+	if isFourGreatBlessings(tiles) {
+		return gameLimit
+	}
+	// Thirteen Wonders
+	if isThirteenWonders(tiles) {
+		return gameLimit
+	}
+
 	for _, m := range melds {
 		if m.Type == MeldPong || m.Type == MeldGang {
 			if m.Tiles[0] == TileDragonsRed || m.Tiles[0] == TileDragonsGreen || m.Tiles[0] == TileDragonsWhite {
