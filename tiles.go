@@ -74,11 +74,12 @@ var (
 		TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth,
 		TileDragonsRed, TileDragonsGreen, TileDragonsWhite,
 	}
-	flowerTiles = []Tile{TileGentlemen1, TileGentlemen2, TileGentlemen3, TileGentlemen4}
-	seasonTiles = []Tile{TileSeasons1, TileSeasons2, TileSeasons3, TileSeasons4}
-	windTiles   = []Tile{TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth}
-	dragonTiles = []Tile{TileDragonsRed, TileDragonsGreen, TileDragonsWhite}
-	wonderTiles = []Tile{
+	animalsTiles = []Tile{TileCat, TileRat, TileRooster, TileCentipede}
+	flowerTiles  = []Tile{TileGentlemen1, TileGentlemen2, TileGentlemen3, TileGentlemen4}
+	seasonTiles  = []Tile{TileSeasons1, TileSeasons2, TileSeasons3, TileSeasons4}
+	windTiles    = []Tile{TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth}
+	dragonTiles  = []Tile{TileDragonsRed, TileDragonsGreen, TileDragonsWhite}
+	wonderTiles  = []Tile{
 		TileDragonsRed, TileDragonsGreen, TileDragonsWhite,
 		TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth,
 		TileDots1, TileDots9, TileBamboo1, TileBamboo9, TileCharacters1, TileCharacters9}

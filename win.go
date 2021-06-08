@@ -155,6 +155,18 @@ func isSeasonSet(tiles map[Tile]int) bool {
 	return seasonCount == 4
 }
 
+func isAnimalSet(tiles map[Tile]int) bool {
+	// Check for Season set
+	seasonCount := 0
+	for _, s := range animalsTiles {
+		_, ok := tiles[s]
+		if ok {
+			seasonCount++
+		}
+	}
+	return seasonCount == 4
+}
+
 func isMatchingWind(wind Tile, seat Direction) bool {
 	switch {
 	case wind == TileWindsEast && seat == DirectionEast:
@@ -230,9 +242,9 @@ func score(round *Round, seat int, melds Melds) int {
 			tiles[tile]++
 		}
 	}
-	flowers := make(map[Tile]int)
+	bonusTiles := make(map[Tile]int)
 	for _, flower := range round.Hands[seat].Flowers {
-		flowers[flower]++
+		bonusTiles[flower]++
 	}
 	// fmt.Printf("\n melds : %v \n", melds)
 	// fmt.Printf("\ntiles : %v \n", tiles)
@@ -261,10 +273,14 @@ func score(round *Round, seat int, melds Melds) int {
 			score++
 		}
 	}
+	if isAnimalSet(bonusTiles) {
+		score++
+	}
+
 	// Add Other Flower Conditions
-	if isFlowerSet(flowers) && isSeasonSet(flowers) {
+	if isFlowerSet(bonusTiles) && isSeasonSet(bonusTiles) {
 		return gameLimit
-	} else if isFlowerSet(flowers) || isSeasonSet(flowers) {
+	} else if isFlowerSet(bonusTiles) || isSeasonSet(bonusTiles) {
 		score++
 	}
 	// Three Great Scholars
