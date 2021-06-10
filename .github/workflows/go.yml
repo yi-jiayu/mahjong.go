@@ -19,4 +19,7 @@ jobs:
         go-version: 1.15
 
     - name: Test
-      run: go test -v
+      run: go test -v -coverprofile=coverage.txt
+    
+    - name: Coverage
+      run: bash <(curl -s https://codecov.io/bash)
