@@ -239,6 +239,58 @@ func Test_score(t *testing.T) {
 		}
 		assert.Equal(t, 2, score(round, 0, melds))
 	})
+	t.Run("three great scholars", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands: [4]Hand{{
+				Flowers: []Tile{TileGentlemen2},
+			}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileDragonsRed, TileDragonsRed, TileDragonsRed}},
+			{Type: MeldPong, Tiles: []Tile{TileDragonsGreen, TileDragonsGreen, TileDragonsGreen}},
+			{Type: MeldPong, Tiles: []Tile{TileDragonsWhite, TileDragonsWhite, TileDragonsWhite}},
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldEyes, Tiles: []Tile{TileBamboo2, TileBamboo2}},
+		}
+		assert.Equal(t, 5, score(round, 0, melds))
+	})
+	t.Run("four great blessings", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands: [4]Hand{{
+				Flowers: []Tile{TileGentlemen2},
+			}},
+		}
+		melds := []Meld{
+			{Type: MeldPong, Tiles: []Tile{TileWindsEast, TileWindsEast, TileWindsEast}},
+			{Type: MeldPong, Tiles: []Tile{TileWindsSouth, TileWindsSouth, TileWindsSouth}},
+			{Type: MeldPong, Tiles: []Tile{TileWindsWest, TileWindsWest, TileWindsWest}},
+			{Type: MeldPong, Tiles: []Tile{TileWindsNorth, TileWindsNorth, TileWindsNorth}},
+			{Type: MeldEyes, Tiles: []Tile{TileBamboo2, TileBamboo2}},
+		}
+		assert.Equal(t, 10, score(round, 0, melds)) //10 is hard coded as limit
+	})
+	// TODO: Test case for thirteen wonders
+	t.Run("flower set", func(t *testing.T) {
+		round := &Round{
+			Dealer: 0,
+			Turn:   2,
+			Hands: [4]Hand{{
+				Flowers: []Tile{TileGentlemen1, TileGentlemen2, TileGentlemen3, TileGentlemen4},
+			}},
+		}
+		melds := []Meld{
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo3, TileBamboo4, TileBamboo5}},
+			{Type: MeldChi, Tiles: []Tile{TileBamboo2, TileBamboo3, TileBamboo4}},
+			{Type: MeldChi, Tiles: []Tile{TileDots1, TileDots2, TileDots3}},
+			{Type: MeldEyes, Tiles: []Tile{TileDots1, TileDots1}},
+		}
+		assert.Equal(t, 3, score(round, 0, melds)) //10 is hard coded as limit
+	})
 }
 
 func Test_winnings(t *testing.T) {

@@ -66,14 +66,23 @@ const (
 )
 
 var (
-	flowerTiles = []Tile{TileCat, TileRat, TileRooster, TileCentipede, TileGentlemen1, TileGentlemen2, TileGentlemen3, TileGentlemen4, TileSeasons1, TileSeasons2, TileSeasons3, TileSeasons4}
-	suitedTiles = []Tile{
+	bonusTiles = []Tile{TileCat, TileRat, TileRooster, TileCentipede, TileGentlemen1, TileGentlemen2, TileGentlemen3, TileGentlemen4, TileSeasons1, TileSeasons2, TileSeasons3, TileSeasons4}
+	wallTiles  = []Tile{
 		TileDots1, TileDots2, TileDots3, TileDots4, TileDots5, TileDots6, TileDots7, TileDots8, TileDots9,
 		TileBamboo1, TileBamboo2, TileBamboo3, TileBamboo4, TileBamboo5, TileBamboo6, TileBamboo7, TileBamboo8, TileBamboo9,
 		TileCharacters1, TileCharacters2, TileCharacters3, TileCharacters4, TileCharacters5, TileCharacters6, TileCharacters7, TileCharacters8, TileCharacters9,
 		TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth,
 		TileDragonsRed, TileDragonsGreen, TileDragonsWhite,
 	}
+	animalsTiles = []Tile{TileCat, TileRat, TileRooster, TileCentipede}
+	flowerTiles  = []Tile{TileGentlemen1, TileGentlemen2, TileGentlemen3, TileGentlemen4}
+	seasonTiles  = []Tile{TileSeasons1, TileSeasons2, TileSeasons3, TileSeasons4}
+	windTiles    = []Tile{TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth}
+	dragonTiles  = []Tile{TileDragonsRed, TileDragonsGreen, TileDragonsWhite}
+	wonderTiles  = []Tile{
+		TileDragonsRed, TileDragonsGreen, TileDragonsWhite,
+		TileWindsEast, TileWindsSouth, TileWindsWest, TileWindsNorth,
+		TileDots1, TileDots9, TileBamboo1, TileBamboo9, TileCharacters1, TileCharacters9}
 )
 
 type FlowerGroup struct {

@@ -625,8 +625,8 @@ func (r *Round) View(seat int) RoundView {
 
 func newWall(r *rand.Rand) []Tile {
 	var wall []Tile
-	wall = append(wall, flowerTiles...)
-	for _, tile := range suitedTiles {
+	wall = append(wall, bonusTiles...)
+	for _, tile := range wallTiles {
 		wall = append(wall, tile, tile, tile, tile)
 	}
 	r.Shuffle(len(wall), func(i, j int) {
